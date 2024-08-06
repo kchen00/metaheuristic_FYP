@@ -7,7 +7,7 @@ def min_min(assignments: list) -> list:
     """
     schedule = []
     # shallow copy of assingments to avoid issue
-    active_assigment = {a for a in assignments if a.active}
+    active_assigment = {a for a in assignments}
 
     # recalculate all the make span for each session of scheduling
     for a in active_assigment:
@@ -24,6 +24,9 @@ def min_min(assignments: list) -> list:
 
         # add the min job to schedule
         schedule.append(min_job)
+
+        # activate the min job
+        min_job.active = True
 
         # remove the min job from active assignment
         active_assigment = [a for a in active_assigment if a.job != min_job.job]
