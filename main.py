@@ -7,8 +7,14 @@ import random
 # for debugging perpose
 random.seed(1)
 
+# # brute force method
+# solution = BF.run()
+# print_schedule(solution)
+
+# genetic algorithm method
+solution = GA.run()
+print_schedule(solution.schedule)
+
+# # simulated annealing method
 # solution = SA.run()
 # print_schedule(solution.state)
-
-solution = BF.run()
-print_schedule(solution)
