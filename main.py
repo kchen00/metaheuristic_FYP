@@ -11,10 +11,10 @@ random.seed(1)
 # solution = BF.run()
 # print_schedule(solution)
 
-# genetic algorithm method
-solution = GA.run()
-print_schedule(solution.schedule)
+# # genetic algorithm method
+# solution = GA.run()
+# print_schedule(solution.schedule)
 
-# # simulated annealing method
-# solution = SA.run()
-# print_schedule(solution.state)
+# simulated annealing method
+solution = SA.run()
+print_schedule(solution.state)

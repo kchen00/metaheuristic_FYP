@@ -1,107 +1,148 @@
-# TODO
-# figure out the acceptance prob, somehow it keep increasing over iterations
-
+from helpers import helper
 from models.job import Job
 from models.team import Team
 from models.assignment import Assignment
 import random
-from helpers import helper
-from copy import deepcopy
 import numpy as np
 from matplotlib import pyplot as plt
 
-jobs = helper.create_random_jobs(10)
-teams = helper.create_random_team(4)
+class State(Assignment):
+    def __init__(self, j: Job, t: Team):
+        super().__init__(j, t)
+        self.active = False
 
-class Candidate:
-    def __init__(self, state: list) -> None:
-        self.state: list = state
-        self.fitness: float = 0
-
-def create_starting_state(j: Job, t: Team) -> list:
+class Solution:
     """
-    create a starting state for starting state
+    represent a possible solution in search space
+    """
+    def __init__(self, state: list):
+        self.state = state
+        self.fitness = 0
+        self.make_span = 0
+
+class Anneal:
+    """
+    represent the simulated annealing process
+    """
+    def __init__(self, cooling_rate: float = 0.95, temperature: float = 1) -> None:
+        self.iteration = 1
+        self.cooling_rate = cooling_rate
+        self.temperature = temperature
+        
+        # the current candidate that is being evaluated
+        self.current = None
+        # the neighbbour solution
+        self.neighbour = None
+        # the best candidate overall
+        self.best = None
+        self.hist = []
+    
+    def evaluate_candidate(self, candidate: Solution):
+        """
+        evaluates the candidate solution
+        """
+        # fitness in terms of make span
+        t, make_span_fit = helper.calculate_make_span(candidate.state)
+        candidate.make_span = make_span_fit
+        
+        # fitness in terms of job acquired
+        unique_job = {s.job for s in candidate.state}
+        job_acquired = [s.job for s in candidate.state if s.active]
+        job_fit = len(unique_job) - len(job_acquired)
+        
+        # if there is too much or too less job, add an arbitary large value
+        if job_fit > len(unique_job) or job_fit < 0:
+            job_fit += 9999
+
+        candidate.fitness = make_span_fit + job_fit
+
+    def create_neighbour_solution(self, change_prob: float) -> Solution:
+        """
+        based on the current solution create a neighbour solution by randomly activating and deactivating the state
+
+        the amount of changes depends on the change_prob
+        """
+        # extracting the job and team from the current solution
+        state = []
+        for s in self.current.state:
+            new_state = State(s.job, s.team)
+            new_state.active = s.active
+            if random.random() < change_prob:
+                new_state.active ^= True
+            
+            state.append(new_state)
+        
+        neighbour = Solution(state)
+        return neighbour
+    
+    def decide_solution(self):
+        """
+        accepts the neighbour solution based on probability
+        """
+        # if the neighbour solution is better, accepts it no matter what
+        if self.neighbour.fitness < self.current.fitness:
+            self.current = self.neighbour
+            print(f"Neighbour solution is better than current solution")
+            
+            # keep track the best solution so far
+            if self.iteration == 1:
+                self.best = self.current
+            else:
+                if self.current.fitness < self.best.fitness:
+                    self.best = self.current
+                    print(f"New best found:  {"".join([str(int(s.active)) for s in self.best.state])} | {self.best.fitness}")
+        
+        # else, based on a decreasng probability, determine whether or not to accept the solution
+        else:
+            if random.random() < self.temperature:
+                self.current = self.current
+                print("RNG god accepts the neighbour solution")
+        
+        self.hist.append(self.current.fitness)
+    
+    def cool_down(self):
+        self.temperature *= self.cooling_rate
+
+
+def create_random_states(jobs: list, teams: list) -> list:
+    """
+    creates random states by randomly activating the states
     """
     state = []
 
     for j in jobs:
         for t in teams:
-            new_assignment = Assignment(j, t)
-            state.append(new_assignment)
-        
-        # the choosen assigment to activate
-        choosen_assigment: Assignment = random.choice([s for s in state if s.job == j])
-        choosen_assigment.active = True
+            new_state = State(j, t)
+            new_state.active = random.choice([True, False])
+            state.append(new_state)
     
     return state
 
-def create_neighbour_candidate(current_state: list, t: float) -> Candidate:
-    """
-    generates the neighbour candiate by modifying the current state
-    controlled by the temperature
-    higher temp means more changes 
-    """
-    neighbour_state = deepcopy(current_state)
-    unique_jobs = {s.job for s in neighbour_state}
+def crete_random_solution(jobs: list, teams: list) -> Solution:
+    state = create_random_states(jobs, teams)
+    solution = Solution(state)
+    return solution
 
-    # then choose a assignment with unique job and activate it
-    for j in unique_jobs:
-        if random.random() < t:
-            state = [s for s in neighbour_state if s.job == j]
-            random.shuffle(state)
+jobs = helper.create_random_jobs(10)
+teams = helper.create_random_team(5)
 
-            for s in state:
-                s.active = False
-            
-            random.choice(state).active = True
+def run():
+    anneal = Anneal(temperature=1)
+    anneal.current = crete_random_solution(jobs, teams)
+    anneal.evaluate_candidate(anneal.current)
+
     
-    neighbour = Candidate(neighbour_state)
-
-    return neighbour
-
-
-
-def run(cooling_rate: float = 0.95) -> Candidate:
-    """
-    perform simulated annealing to find the best job and team assigment
-    """
-    starting_state = create_starting_state(jobs, teams)
-    current = Candidate(starting_state)
-    current.fitness = helper.calculate_make_span(starting_state)[1]
-    hist = []
-    temperature = 1
-
-    for i in range(50):
-        neighbour = create_neighbour_candidate(current.state, temperature)
-        neighbour.fitness = helper.calculate_make_span(neighbour.state)[1]
-
-        diff = neighbour.fitness - current.fitness
-        accept_prob = 1 / (i + 1)
-
-        # make span -> fitness of the state
-        # lower maker span -> higher fitness
-        # if the neighbour is better than the current one, ie lower make span
-
-        # since the diff is determined by neighour - current
-        # when diff is negative, means that neighbour make span is less than current one, accept it 
-        if diff < 0 :
-            print(f"{neighbour} has a shorter make span")            
-            current = neighbour
+    for i in range(200):
+        anneal.neighbour = anneal.create_neighbour_solution(anneal.temperature)
+        anneal.evaluate_candidate(anneal.neighbour)
+        anneal.decide_solution()
+        anneal.cool_down()
         
-        elif random.random() < accept_prob:
-            print(f"RNG god says accept {neighbour} worse solution")
-            current = neighbour
-        
-        else:
-            print(f"{neighbour} solution is discarded")
-        
-        # cooling down the temperature
-        hist.append(current.fitness)
-        temperature *= cooling_rate
-            
-
-
-    plt.plot(hist)
+        anneal.iteration += 1
+    
+    plt.plot(anneal.hist)
     plt.show()
-    return current
+    
+    return anneal.best
+    
 
