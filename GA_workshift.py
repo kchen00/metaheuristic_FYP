@@ -4,7 +4,6 @@ from models.team import Team
 from helpers import helper
 import random
 import numpy as np
-from copy import deepcopy
 from matplotlib import pyplot as plt
 
 class Gene(Assignment):
@@ -16,7 +15,6 @@ class Chromosome:
         self.genes = genes
         self.fitness = 0
         self.make_span = 0
-        self.schedule = []
     
     def cross_over(self, partner: 'Chromosome') -> 'Chromosome':
         """
@@ -29,8 +27,6 @@ class Chromosome:
         for s, p in zip(self.genes, partner.genes):
             # make sure the job object is the same
             assert s.job == p.job, f"{s.job.name} is not {p.job.name}"
-            # make sure the team object is the same
-            assert s.team == p.team, f"{s.job.name} is not {p.team.name}"
         
         # choosing a random point for cross over
         random_point = random.randint(1, len(self.genes) - 1)
@@ -43,21 +39,20 @@ class Chromosome:
         # extracting the job and team from original genes
         # create a new gene object from it
         bebe_gene = []
+        g: Gene
         for g in comb_gene:
             new_gene = Gene(g.job, g.team)
-            new_gene.active = g.active
             bebe_gene.append(new_gene)
 
-        # some assertion check agin to make sure things are correct
+        # some assertion check again to make sure things are correct
         for s, b in zip(self.genes, bebe_gene):
             assert s.job == b.job
-            assert s.team == b.team
 
         bebe = Chromosome(bebe_gene)
         return bebe
 
 class Population:
-    def __init__(self, size: int, top: float = 0.5, cross_over_rate: float = 0.95, mutation_rate: float = 0.1):
+    def __init__(self, jobs: list, teams: list, size: int, top: float = 0.5, cross_over_rate: float = 0.95, mutation_rate: float = 0.1):
         """
         represent a population of chromosome
         
@@ -66,6 +61,10 @@ class Population:
         self.generation = 1
         self.size = size
         self.chromosomes = []
+
+        # list of teams and jobs
+        self.jobs = jobs
+        self.teams = teams
         
         self.top = top
         self.cross_over_rate = cross_over_rate
@@ -78,20 +77,19 @@ class Population:
 
         self.hist = []
 
-    def generate_chromosomes(self, amount: int, jobs: list, teams: list):
+    def generate_chromosomes(self, amount: int):
         """
         generate chromosomes based on the amount specified
         """
         for i in range(amount):
             genes = []
-            for j in jobs:
-                for t in teams:
-                    new_gene = Gene(j, t)
-                    new_gene.active = random.choice([False, True])
-                    genes.append(new_gene)
+            j: Job
+            for j in self.jobs:
+                choosen_team = random.choice(self.teams)
+                new_gene = Gene(j, choosen_team)
+                genes.append(new_gene)
 
             new_chromosome = Chromosome(genes)
-            new_chromosome.schedule = [g for g in new_chromosome.genes if g.active]
             self.chromosomes.append(new_chromosome)
         
 
@@ -102,33 +100,26 @@ class Population:
         c: Chromosome
         for c in self.chromosomes:
             # fitness in terms of make span
-            t, make_span_fit = helper.calculate_make_span(c.schedule)
-            c.make_span = make_span_fit
-
-            # fitness in terms of job acquired
-            unique_job = {g.job for g in c.genes}
-            job_acquired = [g.job for g in c.genes if g.active]
-            job_fit = len(unique_job) - len(job_acquired)
-            
-            # if there is too much or too less job, add an arbitary large value
-            if job_fit > len(unique_job) or job_fit < 0:
-                job_fit += 9999
-
-            c.fitness = make_span_fit + job_fit
+            t, make_span = helper.calculate_make_span(c.genes)
+            c.make_span = make_span
+            c.fitness = make_span
 
         current_best = min(self.chromosomes, key=lambda x: x.fitness)
         
         if self.generation == 1:
             self.best = current_best
-            print("".join([str(int(g.active)) for g in self.best.genes]), self.best.fitness)
+            print("New best found!")
         else:
             if current_best.fitness < self.best.fitness:
                 self.best = current_best              
-                print("".join([str(int(g.active)) for g in self.best.genes]), self.best.fitness)
+                print("New best found!")
         
         self.hist.append(np.mean([c.make_span for c in self.chromosomes]))              
 
     def eliminate_chromosome(self):
+        """
+        eliminates the chromosome, choose the chromosomes that are to the top percentage
+        """
         before = len(self.chromosomes)
         
         self.chromosomes.sort(key=lambda x: x.fitness, reverse=True)
@@ -149,7 +140,6 @@ class Population:
         
         then randomly mutate the gene of the bebe produced
         """
-
         bebes = []
         for i in range(self.size):
             if random.random() < self.cross_over_rate:
@@ -169,11 +159,7 @@ class Population:
             g: Gene
             for g in b.genes:
                 if random.random() < self.mutation_rate:
-                    g.active ^= True
-            
-            # setting the schedule for the bebe
-            b.schedule = [g for g in b.genes if g.active]
-            assert len(b.schedule) > 0
+                    g.team = random.choice(self.teams)
 
         self.chromosomes += bebes
 
@@ -189,12 +175,12 @@ class Population:
         #         self.chromosomes.append(new_chromosome)
 
 
-jobs = helper.create_random_jobs(10)
-teams = helper.create_random_team(5)
 
 def run() -> Chromosome:
-    population = Population(500, cross_over_rate=0.8, mutation_rate=0.05)
-    population.generate_chromosomes(population.size, jobs, teams)
+    jobs = helper.create_random_jobs(10)
+    teams = helper.create_random_team(5)
+    population = Population(jobs, teams, 500, cross_over_rate=0.95, mutation_rate=0.2)
+    population.generate_chromosomes(population.size)
     
     while population.generation <= 200:
         print(f"Generation {population.generation} | population: {len(population.chromosomes)}")

@@ -13,7 +13,7 @@ random.seed(1)
 
 # # genetic algorithm method
 # solution = GA.run()
-# print_schedule(solution.schedule)
+# print_schedule(solution.genes)
 
 # simulated annealing method
 solution = SA.run()

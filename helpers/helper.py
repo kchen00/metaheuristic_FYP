@@ -40,7 +40,7 @@ def calculate_make_span(schedule: list) -> tuple:
     make_span = {}
 
     for t in teams:
-        make_span[t] = sum([s.make_span for s in schedule if s.active and s.team == t])
+        make_span[t] = sum([s.make_span for s in schedule if s.team == t])
     
     max_team = max(make_span, key=make_span.get)
     
@@ -58,5 +58,5 @@ def print_schedule(schedule: list):
     print(f"Team {team.name} has the highest make span")
     t: Team
     for t in teams:
-        print(f"{t.name} | {[s.job.name for s in schedule if s.active and s.team == t]} | {sum([s.make_span for s in schedule if s.active and s.team == t])}")
+        print(f"{t.name} | {[s.job.name for s in schedule if s.team == t]} | {sum([s.make_span for s in schedule if s.team == t])}")
     
