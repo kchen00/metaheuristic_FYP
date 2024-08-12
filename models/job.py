@@ -17,7 +17,7 @@ class Job:
     ED: estimated time, realistic time estimate needed tom complete this job
     PD: pessimistic time, longest time possible to complete this job
     """
-    def __init__(self, name: str, job_type: JOB_TYPE, od: float, ed: float, pd: float, weight: list = [1, 4, 1]):
+    def __init__(self, name: str, id_: int, job_type: JOB_TYPE, od: float, ed: float, pd: float, weight: list = [1, 4, 1]):
         assert pd > ed > od, "OD must be the smallest and PD must be the largest"
         self.name = name
         self.job_type = job_type
@@ -29,6 +29,8 @@ class Job:
 
         self.calculated_weighted_duration()
 
+        self.id_ = id_
+
     def calculated_weighted_duration(self):
         weighted_duration = 0
 
@@ -38,3 +40,6 @@ class Job:
         weighted_duration /= sum(self.weight)
 
         self.weighted_duration = weighted_duration
+
+    def __repr__(self) -> str:
+        return str(self.id_)

@@ -22,3 +22,7 @@ class Assignment:
         self.make_span = self.job.weighted_duration / self.team.efficiency
 
         return self.make_span
+
+    def __repr__(self) -> str:
+        vector = f"T{self.team}J{self.job}"
+        return vector

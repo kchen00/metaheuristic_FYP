@@ -12,7 +12,7 @@ def create_random_jobs(amount:int) -> list:
     """
     random_jobs = []
     for i in range(amount):
-        new_job = Job(f"job_{i+1}", JOB_TYPE.PLANNING, 8/(i+1), 12/(i+1), 15/(i+1))
+        new_job = Job(f"job_{i+1}", i+1, JOB_TYPE.PLANNING, 8/(i+1), 12/(i+1), 15/(i+1))
         random_jobs.append(new_job)
 
     return random_jobs
@@ -23,7 +23,7 @@ def create_random_team(amount: int) -> list:
     """
     random_teams = []
     for i in range(amount):
-        new_team = Team(f"team_{i+1}", 0.5, JOB_TYPE.PLANNING)
+        new_team = Team(f"team_{i+1}", i+1, 0.5, JOB_TYPE.PLANNING)
         random_teams.append(new_team)
 
     return random_teams
