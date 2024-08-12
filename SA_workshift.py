@@ -66,11 +66,11 @@ class Anneal:
         # keeping track of the best solution 
         if self.iteration == 1:
             self.best = self.current
-            print("New best found!")
+            print(f"New best found! | {self.best.state}")
         else:
             if self.current.fitness < self.best.fitness:
                 self.best = self.current
-                print("New best found!")
+                print(f"New best found! | {self.best.state}")
         
     def create_neighbour_solution(self, change_prob: float) -> Solution:
         """

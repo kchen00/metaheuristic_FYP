@@ -108,11 +108,11 @@ class Population:
         
         if self.generation == 1:
             self.best = current_best
-            print("New best found!")
+            print(f"New best found! | {current_best.genes}")
         else:
             if current_best.fitness < self.best.fitness:
                 self.best = current_best              
-                print("New best found!")
+                print(f"New best found! | {current_best.genes}")
         
         self.hist.append(np.mean([c.make_span for c in self.chromosomes]))              
 
