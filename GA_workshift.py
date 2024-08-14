@@ -5,6 +5,7 @@ from helpers import helper
 import random
 import numpy as np
 from matplotlib import pyplot as plt
+from itertools import combinations
 
 class Gene(Assignment):
     def __init__(self, j: Job, t: Team) -> None:
@@ -15,6 +16,7 @@ class Chromosome:
         self.genes = genes
         self.fitness = 0
         self.make_span = 0
+        self.selected = 1
     
     def cross_over(self, partner: 'Chromosome') -> 'Chromosome':
         """
@@ -52,7 +54,7 @@ class Chromosome:
         return bebe
 
 class Population:
-    def __init__(self, jobs: list, teams: list, size: int, top: float = 0.5, cross_over_rate: float = 0.95, mutation_rate: float = 0.1):
+    def __init__(self, jobs: list, teams: list, size: int, cross_over_rate: float = 0.95, mutation_rate: float = 0.1):
         """
         represent a population of chromosome
         
@@ -66,7 +68,6 @@ class Population:
         self.jobs = jobs
         self.teams = teams
         
-        self.top = top
         self.cross_over_rate = cross_over_rate
         self.mutation_rate = mutation_rate
 
@@ -85,7 +86,7 @@ class Population:
             genes = []
             j: Job
             for j in self.jobs:
-                choosen_team = random.choice(self.teams)
+                choosen_team = random.choice([t for t in self.teams if t.job_focus == j.job_type])
                 new_gene = Gene(j, choosen_team)
                 genes.append(new_gene)
 
@@ -111,46 +112,82 @@ class Population:
             print(f"New best found! | {current_best.genes}")
         else:
             if current_best.fitness < self.best.fitness:
-                self.best = current_best              
+                self.best = current_best     
+                self.best.selected = self.generation         
                 print(f"New best found! | {current_best.genes}")
         
-        self.hist.append(np.mean([c.make_span for c in self.chromosomes]))              
+        self.hist.append(current_best.fitness)
 
-    def eliminate_chromosome(self):
+    def rank_select(self, amount: int) -> list:
         """
-        eliminates the chromosome, choose the chromosomes that are to the top percentage
-        """
-        before = len(self.chromosomes)
+        rank based selection
         
-        self.chromosomes.sort(key=lambda x: x.fitness, reverse=True)
+        sort the chromosome based on the rank and return the top percent chromosome specified
+        """        
+        # sort the chromosome based on the fitness
+        self.chromosomes.sort(key=lambda x: x.fitness)
         # selecting the top percent of chromosome
-        top = int(before * self.top)
-        self.chromosomes = self.chromosomes[top:]
+        winners = self.chromosomes[:amount]
+        print(f"Selected {len(winners)} chromosome in rank selection")
+        return winners
+
+    def tournament_select(self, amount: int) -> list:
+        """
+        tournament selection
+
+        return a list chromomsome that wins the tournament according to amount specified
+        """
+        winners = []
+        while len(winners) < amount and len(self.chromosomes) > 0:
+            competitor = random.sample(self.chromosomes, 2)
+            winner = competitor[0] if competitor[0].fitness < competitor[1].fitness else competitor[1]
+            winners.append(winner)
+            # remove the winner from the population so that it is not selected again
+            self.chromosomes.remove(winner)
         
-        after = len(self.chromosomes)
-        print(f"eliminated {before - after} chromosomes")
+        print(f"Selected {len(winners)} chromosome in tournament selection")
+        return winners
+    
+    def roulette_selection(self, amount: int) -> list:
+        """
+        roulette selection
 
+        return a list of selected chromosome based on the amount specified
+        """
+        winners = []
 
-    def tournament(self, p1:Chromosome, p2:Chromosome):
-        return p1 if p1.fitness > p2.fitness else p2
+        while len(winners) < amount and len(self.chromosomes) > 0:
+            total_fitness = np.sum([c.fitness for c in self.chromosomes])
+            cumulative_fit = 0
+            random_fit = random.random()
+            
+            for c in self.chromosomes:
+                cumulative_fit += c.fitness / total_fitness
+                if random_fit < cumulative_fit:
+                    winners.append(c)
+                    self.chromosomes.remove(c)
+                    break
+
+        print(f"Selected {len(winners)} chromosome in roulette selection")
+        return winners
 
     def produce_bebe(self):
         """
-        cross over operation using tournament selection
+        cross over operation to produce new bebe
         
         then randomly mutate the gene of the bebe produced
+
+        produce bebe until population is equal to population size
         """
         bebes = []
-        for i in range(self.size):
-            if random.random() < self.cross_over_rate:
-                competitors = random.sample(self.chromosomes, 4)
-                for c1, c2, c3, c4 in [competitors]:
-                    p1 = self.tournament(c1, c2)
-                    p2 = self.tournament(c3, c4)
+        bebes_to_produce = self.size - len(self.chromosomes)
 
+        while len(bebes) < bebes_to_produce:
+            parents = random.sample(self.chromosomes, 2)
+            for p1, p2 in [parents]:
+                if random.random() < self.cross_over_rate:
                     bebe_1 = p1.cross_over(p2)
                     bebe_2 = p2.cross_over(p1)
-
                     bebes += [bebe_1, bebe_2]
 
         # mutate the genes in the bebe
@@ -159,7 +196,7 @@ class Population:
             g: Gene
             for g in b.genes:
                 if random.random() < self.mutation_rate:
-                    g.team = random.choice(self.teams)
+                    g.team = random.choice([t for t in self.teams if t.job_focus == g.job.job_type])
 
         self.chromosomes += bebes
 
@@ -167,25 +204,17 @@ class Population:
         # else sample the population size needed only
         if len(self.chromosomes) > self.size:
             self.chromosomes = random.sample(self.chromosomes, self.size)
-        # else:
-        #     # just produce some copy of existing chromosome to make up the number of chromosome
-        #     while len(self.chromosomes) < self.size:
-        #         random_chromosome = random.choice(self.chromosomes)
-        #         new_chromosome = Chromosome(random_chromosome.genes)
-        #         self.chromosomes.append(new_chromosome)
-
-
 
 def run() -> Chromosome:
     jobs = helper.create_random_jobs(10)
     teams = helper.create_random_team(5)
-    population = Population(jobs, teams, 500, cross_over_rate=0.95, mutation_rate=0.2)
+    population = Population(jobs, teams, 50, cross_over_rate=0.8, mutation_rate=0.1)
     population.generate_chromosomes(population.size)
     
-    while population.generation <= 200:
+    while population.generation <= 100:
         print(f"Generation {population.generation} | population: {len(population.chromosomes)}")
         population.evaluate_chromosome()
-        population.eliminate_chromosome()
+        population.chromosomes = population.rank_select(50)
         population.produce_bebe()
         population.generation += 1
 
