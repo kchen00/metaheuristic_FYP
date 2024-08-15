@@ -4,7 +4,6 @@ some helper scripts to make my life easier
 
 from models.job import Job, JOB_TYPE
 from models.team import Team
-from models.assignment import Assignment
 
 def create_random_jobs(amount:int) -> list:
     """
@@ -56,7 +55,12 @@ def print_schedule(schedule: list):
 
     print(f"Make span: {make_span:.2f}")
     print(f"Team {team.name} has the highest make span")
-    t: Team
-    for t in teams:
-        print(f"{t.name} | {[s.job.name for s in schedule if s.team == t]} | {sum([s.make_span for s in schedule if s.team == t])}")
+
+    for job_type in JOB_TYPE: 
+        print(job_type.name)
+        t: Team
+        for t in teams:
+            job_slot = [s.job.name for s in schedule if s.team == t and s.job.job_type == job_type]
+            make_span = sum([s.make_span for s in schedule if s.team == t and s.job.job_type == job_type])
+            print(f"{t.name} | {job_slot} | {make_span}")
     
