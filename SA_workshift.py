@@ -1,5 +1,5 @@
 from helpers import helper
-from models.job import Job
+from models.job import Job, JOB_TYPE
 from models.team import Team
 from models.assignment import Assignment
 import random
@@ -18,6 +18,7 @@ class Solution:
         self.state = state
         self.fitness = 0
         self.make_span = 0
+        self.selected = 1
 
 class Anneal:
     """
@@ -47,7 +48,7 @@ class Anneal:
 
         for j in self.jobs:
             # assign random team to the job
-            selected_team = random.choice(self.teams)
+            selected_team = random.choice([t for t in self.teams if t.job_focus == j.job_type])
             new_state = State(j, selected_team)
             state.append(new_state)
         
@@ -70,20 +71,22 @@ class Anneal:
         else:
             if self.current.fitness < self.best.fitness:
                 self.best = self.current
+                self.best.selected = self.iteration
                 print(f"New best found! | {self.best.state}")
         
     def create_neighbour_solution(self, change_prob: float) -> Solution:
         """
-        based on the current solution create a neighbour solution by randomly activating and deactivating the state
+        based on the current solution create a neighbour solution by randomly assign new team to the job
 
         the amount of changes depends on the change_prob
         """
         state = []
 
+        s: State
         for s in self.current.state:
             new_state = State(s.job, s.team)
             if random.random() < change_prob:
-                selected_team = random.choice(self.teams)
+                selected_team = random.choice([t for t in self.teams if t.job_focus == s.job.job_type])
                 new_state.team = selected_team
             
             state.append(new_state)
@@ -95,19 +98,23 @@ class Anneal:
         """
         accepts the neighbour solution based on probability
         """
-        # if the neighbour solution is better, accepts it no matter what
-        if self.neighbour.fitness < self.current.fitness:
+        diff = self.neighbour.fitness - self.current.fitness
+        # if the diff is negative, means that neighbour is better than current solution
+        # always accept the solution when diff < 0
+        # no need to evaluate when diff == 0
+        if diff < 0:
             self.current = self.neighbour
-            print(f"Neighbour solution is better than current solution")
-                    
-        # else, based on a decreasng probability, determine whether or not to accept the solution
+            if self.current.fitness < self.best.fitness:
+                print(f"New best found! | {self.best.state}")
         else:
-            if random.random() < self.temperature:
+            accept_prob = np.exp(-diff/self.temperature)
+            # else ask RNG god whether or not to accept the worse solution
+            if random.random() < accept_prob and diff > 0:
+                print("RNG god accepts the worse solution")
                 self.current = self.neighbour
-                print("RNG god accepts the neighbour solution")
-        
+
         self.hist.append(self.current.fitness)
-    
+        
     def cool_down(self):
         self.temperature *= self.cooling_rate
 
@@ -115,22 +122,34 @@ def run():
     jobs = helper.create_random_jobs(10)
     teams = helper.create_random_team(5)
 
-    anneal = Anneal(jobs, teams, cooling_rate=0.8)
+    anneal = Anneal(jobs, teams, cooling_rate=0.99, temperature=5)
     anneal.current = anneal.create_initial_solution()
     anneal.evaluate_candidate(anneal.current)
     
-    for i in range(100):
+    for i in range(200):
         print(f"iteration {anneal.iteration} | temp: {anneal.temperature}")
         anneal.neighbour = anneal.create_neighbour_solution(anneal.temperature)
         anneal.evaluate_candidate(anneal.neighbour)
         anneal.decide_solution()
         anneal.cool_down()
-        
+
         anneal.iteration += 1
     
     plt.plot(anneal.hist)
     plt.show()
     
     return anneal.best
+
+def test():
+    temp = 5
+    accept_prob = []
+    for i in range(100):
+        diff = 3
+        prob = np.exp(-diff / temp)
+        accept_prob.append(prob)
+        temp *= 0.96
+    
+    plt.plot(accept_prob)
+    plt.show()
     
 
