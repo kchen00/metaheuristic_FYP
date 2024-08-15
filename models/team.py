@@ -14,3 +14,10 @@ class Team:
     
     def __repr__(self) -> str:
         return str(self.id_)
+
+    def to_dict(self) -> dict:
+        return {
+            "name": self.name,
+            "efficiency": self.efficiency,
+            "job_focus": self.job_focus.value
+        }

@@ -43,3 +43,13 @@ class Job:
 
     def __repr__(self) -> str:
         return str(self.id_)
+
+    def to_dict(self) -> dict:
+        return {
+            "name": self.name,
+            "job_type": self.job_type.value,
+            "od": self.od,
+            "ed": self.ed,
+            "pd": self.pd,
+            "weight": self.weight
+        }
