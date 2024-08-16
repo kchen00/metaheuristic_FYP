@@ -6,6 +6,8 @@ import random
 import numpy as np
 from matplotlib import pyplot as plt
 
+random.seed(1)
+
 class State(Assignment):
     def __init__(self, j: Job, t: Team):
         super().__init__(j, t)
@@ -20,6 +22,7 @@ class Solution:
         
         self.make_span = 0
         self.cost = 0
+        self.balance = 0
         
         self.selected = 1
 
@@ -67,12 +70,17 @@ class Anneal:
         """
         # fitness in terms of make span
         make_span_t, make_span = helper.calculate_make_span(candidate.state)
-        cost_t, cost = helper.calculate_cost(candidate.state)
         candidate.make_span = make_span
+        
+        cost_t, cost = helper.calculate_cost(candidate.state)
         candidate.cost = cost
+
+        penalty = helper.calculate_distribution_penalty(candidate.state, self.jobs, self.teams)
+        candidate.balance = penalty
 
         candidate.fitness = make_span * self.make_span_weight + cost * self.cost_weight
         candidate.fitness /= sum([self.make_span_weight, self.cost_weight])
+        candidate.fitness += penalty
         
     def create_neighbour_solution(self, change_prob: float) -> Solution:
         """
@@ -125,19 +133,20 @@ class Anneal:
 
     def cool_down(self):
         self.temperature *= self.cooling_rate
-        self.temperature = max(0.1, self.temperature)
+        # preventing temperature going too low
+        self.temperature = max(self.temperature, 0.01)
 
-def run():
+def run() -> Solution:
     jobs = helper.create_random_jobs(10)
     teams = helper.create_random_team(5)
 
-    anneal = Anneal(jobs, teams, cooling_rate=0.95, temperature=2)
+    anneal = Anneal(jobs, teams, cooling_rate=0.9, temperature=20)
     anneal.current = anneal.create_initial_solution()
     anneal.evaluate_candidate(anneal.current)
     
-    for i in range(50):
+    for i in range(500):
         print(f"iteration {anneal.iteration} | temp: {anneal.temperature}")
-        anneal.neighbour = anneal.create_neighbour_solution(anneal.temperature)
+        anneal.neighbour = anneal.create_neighbour_solution(0.5)
         anneal.evaluate_candidate(anneal.neighbour)
         anneal.decide_solution()
         anneal.cool_down()
@@ -161,4 +170,8 @@ def test():
     plt.plot(accept_prob)
     plt.show()
     
-
+solution = run()
+helper.print_schedule(solution.state)
+print(f"Solution job balance: {solution.balance}")
+print(f"Solution is selected at iteration {solution.selected}")
+print(f"Solution string: {solution.state}")

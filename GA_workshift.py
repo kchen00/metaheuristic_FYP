@@ -7,6 +7,8 @@ import numpy as np
 from matplotlib import pyplot as plt
 from itertools import combinations
 
+random.seed(1)
+
 class Gene(Assignment):
     def __init__(self, j: Job, t: Team) -> None:
         super().__init__(j, t)
@@ -17,6 +19,8 @@ class Chromosome:
         self.fitness = 0
         self.make_span = 0
         self.cost = 0
+        # how balance is the job distribution
+        self.balance = 0
         self.selected = 1
     
     def cross_over(self, partner: 'Chromosome') -> 'Chromosome':
@@ -107,13 +111,21 @@ class Population:
         for c in self.chromosomes:
             # fitness in terms of make span
             duration_t, make_span = helper.calculate_make_span(c.genes)
-            cost_t, cost = helper.calculate_cost(c.genes)
-            
             c.make_span = make_span
+            # fitness in terms of cost
+            cost_t, cost = helper.calculate_cost(c.genes)
             c.cost = cost
+            
+            # penalty in terms of task distribution
+            penalty = helper.calculate_distribution_penalty(c.genes, self.jobs, self.teams)
+            c.balance = penalty
+            # penalty = 0
             
             c.fitness = self.make_span_weight * make_span + self.cost_weight * cost
             c.fitness /= sum([self.make_span_weight, self.cost_weight])
+            
+            # adding penalty to final fitness because we minimizing the fitness
+            c.fitness += penalty
 
         current_best = min(self.chromosomes, key=lambda x: x.fitness)
         
@@ -173,7 +185,7 @@ class Population:
             
             for c in self.chromosomes:
                 cumulative_fit += c.fitness / total_fitness
-                if random_fit < cumulative_fit:
+                if random_fit <= cumulative_fit:
                     winners.append(c)
                     self.chromosomes.remove(c)
                     break
@@ -218,7 +230,7 @@ class Population:
 def run() -> Chromosome:
     jobs = helper.create_random_jobs(10)
     teams = helper.create_random_team(5)
-    population = Population(jobs, teams, 400, cross_over_rate=0.95, mutation_rate=0.01)
+    population = Population(jobs, teams, 400, cross_over_rate=0.98, mutation_rate=0.3)
     population.generate_chromosomes(population.size)
     
     while population.generation <= 800:
@@ -232,3 +244,9 @@ def run() -> Chromosome:
     plt.show()
 
     return population.best
+
+solution = run()
+helper.print_schedule(solution.genes)
+print(f"Solution job balance: {solution.balance}")
+print(f"Solution is selected at generation {solution.selected}")
+print(f"Solution string {solution.genes}")

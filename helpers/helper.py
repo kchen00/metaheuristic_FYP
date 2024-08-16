@@ -73,6 +73,24 @@ def calculate_cost(schedule: list):
     
     return max_team, total_cost
 
+def calculate_distribution_penalty(schedule: list, jobs: list, teams: list) -> float:
+    """
+    calculates the penalty of task distribution
+    """
+    number_of_jobs = len(jobs)
+    number_of_teams = len(teams)
+    avg_job_per_team = number_of_jobs / number_of_teams
+    
+    mean_diff_squared = 0
+    for t in teams:
+        # j is the number of jobs assinged to the team
+        j = len(set([s.job for s in schedule if s.team == t]))
+        diff = j - avg_job_per_team
+        diff_squared = diff ** 2
+        mean_diff_squared += diff_squared / number_of_teams
+    
+    return mean_diff_squared
+
 def print_schedule(schedule: list):
     schedule.sort(key=lambda x: x.make_span)
     teams = list({s.team for s in schedule})
