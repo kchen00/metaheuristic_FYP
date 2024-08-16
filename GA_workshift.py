@@ -16,6 +16,7 @@ class Chromosome:
         self.genes = genes
         self.fitness = 0
         self.make_span = 0
+        self.cost = 0
         self.selected = 1
     
     def cross_over(self, partner: 'Chromosome') -> 'Chromosome':
@@ -54,7 +55,7 @@ class Chromosome:
         return bebe
 
 class Population:
-    def __init__(self, jobs: list, teams: list, size: int, cross_over_rate: float = 0.95, mutation_rate: float = 0.1):
+    def __init__(self, jobs: list, teams: list, size: int, cross_over_rate: float = 0.95, mutation_rate: float = 0.1, make_span_weight: float = 0.5, cost_weight: float = 0.5):
         """
         represent a population of chromosome
         
@@ -68,6 +69,10 @@ class Population:
         self.jobs = jobs
         self.teams = teams
         
+        # weights on what to prioritize
+        self.make_span_weight = make_span_weight
+        self.cost_weight = cost_weight
+
         self.cross_over_rate = cross_over_rate
         self.mutation_rate = mutation_rate
 
@@ -101,9 +106,14 @@ class Population:
         c: Chromosome
         for c in self.chromosomes:
             # fitness in terms of make span
-            t, make_span = helper.calculate_make_span(c.genes)
+            duration_t, make_span = helper.calculate_make_span(c.genes)
+            cost_t, cost = helper.calculate_cost(c.genes)
+            
             c.make_span = make_span
-            c.fitness = make_span
+            c.cost = cost
+            
+            c.fitness = self.make_span_weight * make_span + self.cost_weight * cost
+            c.fitness /= sum([self.make_span_weight, self.cost_weight])
 
         current_best = min(self.chromosomes, key=lambda x: x.fitness)
         
@@ -116,7 +126,7 @@ class Population:
                 self.best.selected = self.generation         
                 print(f"New best found! | {current_best.genes}")
         
-        self.hist.append(current_best.fitness)
+        self.hist.append(np.mean([c.fitness for c in self.chromosomes]))
 
     def rank_select(self, amount: int) -> list:
         """
@@ -208,13 +218,13 @@ class Population:
 def run() -> Chromosome:
     jobs = helper.create_random_jobs(10)
     teams = helper.create_random_team(5)
-    population = Population(jobs, teams, 50, cross_over_rate=0.8, mutation_rate=0.1)
+    population = Population(jobs, teams, 400, cross_over_rate=0.95, mutation_rate=0.01)
     population.generate_chromosomes(population.size)
     
-    while population.generation <= 100:
+    while population.generation <= 800:
         print(f"Generation {population.generation} | population: {len(population.chromosomes)}")
         population.evaluate_chromosome()
-        population.chromosomes = population.rank_select(50)
+        population.chromosomes = population.rank_select(250)
         population.produce_bebe()
         population.generation += 1
 

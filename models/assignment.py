@@ -11,17 +11,25 @@ class Assignment:
         
         self.job: Job = j
         self.team: Team = t
-        # how much time is needed to complete the job when the job is assigned to this team?
+        # how much time is needed to complete the job 
         self.make_span = 0
+        # how much cost is needed to complete this job
+        self.cost = 0
         # whether this assignemnt is active or not
         self.active = False
 
         self.calculate_make_span()
+        self.calculate_cost()
     
     def calculate_make_span(self):
-        self.make_span = self.job.weighted_duration / self.team.efficiency
+        self.make_span = self.job.weighted_duration / self.team.time_efficiency
 
         return self.make_span
+
+    def calculate_cost(self):
+        self.cost = self.job.weighted_cost / self.team.cost_efficieny
+
+        return self.cost
 
     def __repr__(self) -> str:
         vector = f"T{self.team}J{self.job}"
