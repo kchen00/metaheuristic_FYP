@@ -1,5 +1,5 @@
 from helpers import helper
-from models.job import Job, JOB_TYPE
+from models.job import Job
 from models.team import Team
 from models.assignment import Assignment
 import random
@@ -44,11 +44,15 @@ class Anneal:
         # the current candidate that is being evaluated
         self.current = None
         # the neighbbour solution
-        self.neighbour = None
+        self.neighbours = [] 
         # the best candidate overall
         self.best = None
-        self.hist = []
-    
+        
+        self.fitness = []
+        self.cost = []
+        self.make_span = []
+        self.penalty = []
+
     def create_initial_solution(self) -> Solution:
         """
         creates the initial solution
@@ -78,46 +82,61 @@ class Anneal:
         penalty = helper.calculate_distribution_penalty(candidate.state, self.jobs, self.teams)
         candidate.balance = penalty
 
-        candidate.fitness = make_span * self.make_span_weight + cost * self.cost_weight
+        candidate.fitness = self.make_span_weight * make_span + self.cost_weight * cost
         candidate.fitness /= sum([self.make_span_weight, self.cost_weight])
-        candidate.fitness += penalty
         
-    def create_neighbour_solution(self, change_prob: float) -> Solution:
+        candidate.fitness += penalty
+
+    def create_neighbour_solution(self, amount: int, change_prob: float, max_changes: int = None) -> Solution:
         """
         based on the current solution create a neighbour solution by randomly assign new team to the job
 
         the amount of changes depends on the change_prob
+        
+        total changes can be limited by setting max_changes
         """
-        state = []
+        
+        neighbours = []
+        for i in range(amount):
+            limit = max_changes if max_changes else len(self.jobs)
+            state = []
 
-        s: State
-        for s in self.current.state:
-            new_state = State(s.job, s.team)
-            if random.random() < change_prob:
-                selected_team = random.choice([t for t in self.teams if t.job_focus == s.job.job_type])
-                new_state.team = selected_team
-            
-            state.append(new_state)
-                    
-        neighbour = Solution(state)
-        return neighbour
+            s: State
+            for s in self.current.state:
+                new_state = State(s.job, s.team)
+                if random.random() < change_prob and limit > 0 :
+                    selected_team = random.choice([t for t in self.teams if t.job_focus == s.job.job_type])
+                    new_state.team = selected_team
+                    limit -= 1
+                                    
+                state.append(new_state)
+                        
+            neighbour = Solution(state)
+            neighbour.selected = self.iteration
+            neighbours.append(neighbour)
+        
+        return neighbours
     
     def decide_solution(self):
         """
         accepts the neighbour solution based on probability
+
+        find the best neighbour and replace the current ones if the neighbour is better
+
+        else use probability to decide to accept worse neighbour
         """
-        diff = self.neighbour.fitness - self.current.fitness
+        best_neighbour = min(self.neighbours, key=lambda x: x.fitness)
+        diff = best_neighbour.fitness - self.current.fitness
         # if the diff is negative, means that neighbour is better than current solution
         # always accept the solution when diff < 0
         # no need to evaluate when diff == 0
         if diff < 0:
-            self.current = self.neighbour
+            self.current = best_neighbour
         else:
             accept_prob = np.exp(-diff/self.temperature)
-            # else ask RNG god whether or not to accept the worse solution
-            if random.random() < accept_prob and diff > 0:
-                print("RNG god accepts the worse solution")
-                self.current = self.neighbour
+            if random.random() < accept_prob:
+                print("RNG god has choosen the worse solution")
+                self.current = best_neighbour
         
         # keeping track of the best solution 
         if self.iteration == 1:
@@ -126,50 +145,46 @@ class Anneal:
         else:
             if self.current.fitness < self.best.fitness:
                 self.best = self.current
-                self.best.selected = self.iteration
                 print(f"New best found! | {self.best.state}")
         
-        self.hist.append(self.current.fitness)
+        self.fitness.append(np.mean([n.fitness for n in self.neighbours]))
+        self.make_span.append(np.mean([n.make_span for n in self.neighbours]))
+        self.cost.append(np.mean([n.cost for n in self.neighbours]))
+        self.penalty.append(np.mean([n.balance for n in self.neighbours]))
 
     def cool_down(self):
         self.temperature *= self.cooling_rate
         # preventing temperature going too low
-        self.temperature = max(self.temperature, 0.01)
+        self.temperature = max(self.temperature, 0.0001)
 
 def run() -> Solution:
     jobs = helper.create_random_jobs(10)
     teams = helper.create_random_team(5)
 
-    anneal = Anneal(jobs, teams, cooling_rate=0.9, temperature=20)
+    anneal = Anneal(jobs, teams, cooling_rate=0.99, temperature=1000)
     anneal.current = anneal.create_initial_solution()
     anneal.evaluate_candidate(anneal.current)
     
-    for i in range(500):
+    while anneal.iteration <= 500:
         print(f"iteration {anneal.iteration} | temp: {anneal.temperature}")
-        anneal.neighbour = anneal.create_neighbour_solution(0.5)
-        anneal.evaluate_candidate(anneal.neighbour)
+        anneal.neighbours = anneal.create_neighbour_solution(5, np.exp(-anneal.iteration/anneal.temperature), 1)
+        for n in anneal.neighbours:
+            anneal.evaluate_candidate(n)
         anneal.decide_solution()
         anneal.cool_down()
 
         anneal.iteration += 1
     
-    plt.plot(anneal.hist)
+    plt.plot(anneal.fitness)
+    # plt.plot(anneal.make_span)
+    # plt.plot(anneal.cost)
+    # plt.plot(anneal.penalty)
+    plt.legend(["fitness", "make_span", "cost", "penalty"])
     plt.show()
-    
+
     return anneal.best
 
-def test():
-    temp = 5
-    accept_prob = []
-    for i in range(100):
-        diff = 3
-        prob = np.exp(-diff / temp)
-        accept_prob.append(prob)
-        temp *= 0.96
-    
-    plt.plot(accept_prob)
-    plt.show()
-    
+
 solution = run()
 helper.print_schedule(solution.state)
 print(f"Solution job balance: {solution.balance}")
