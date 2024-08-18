@@ -5,7 +5,6 @@ from helpers import helper
 import random
 import numpy as np
 from matplotlib import pyplot as plt
-from itertools import combinations
 
 random.seed(1)
 
@@ -110,7 +109,7 @@ class Population:
         c: Chromosome
         for c in self.chromosomes:
             # fitness in terms of make span
-            duration_t, make_span = helper.calculate_make_span(c.genes)
+            make_span_t, make_span = helper.calculate_make_span(c.genes)
             c.make_span = make_span
             # fitness in terms of cost
             cost_t, cost = helper.calculate_cost(c.genes)
