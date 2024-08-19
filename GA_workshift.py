@@ -18,8 +18,12 @@ class Chromosome:
         self.fitness = 0
         self.make_span = 0
         self.cost = 0
+        
         # how balance is the job distribution
-        self.balance = 0
+        self.load_balance = 0
+        # how balance if the job risk distribution
+        self.risk_balance = 0
+        
         self.selected = 1
     
     def cross_over(self, partner: 'Chromosome') -> 'Chromosome':
@@ -116,15 +120,17 @@ class Population:
             c.cost = cost
             
             # penalty in terms of task distribution
-            penalty = helper.calculate_distribution_penalty(c.genes, self.jobs, self.teams)
-            c.balance = penalty
-            # penalty = 0
+            load_penalty = helper.calculate_distribution_penalty(c.genes, self.jobs, self.teams)
+            c.load_balance = load_penalty
+            
+            risk_penalty = helper.calculate_risk_penalty(c.genes, self.teams)
+            c.risk_balance = risk_penalty
             
             c.fitness = self.make_span_weight * make_span + self.cost_weight * cost
             c.fitness /= sum([self.make_span_weight, self.cost_weight])
             
             # adding penalty to final fitness because we minimizing the fitness
-            c.fitness += penalty
+            c.fitness += load_penalty + risk_penalty
 
         current_best = min(self.chromosomes, key=lambda x: x.fitness)
         
@@ -246,6 +252,7 @@ def run() -> Chromosome:
 
 solution = run()
 helper.print_schedule(solution.genes)
-print(f"Solution job balance: {solution.balance}")
+print(f"Solution job balance: {solution.load_balance}")
+print(f"Solution risk balance: {solution.risk_balance}")
 print(f"Solution is selected at generation {solution.selected}")
 print(f"Solution string {solution.genes}")

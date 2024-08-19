@@ -14,6 +14,8 @@ class Job:
     """
     represent a job in a schedule
 
+    risk is an arbitary value to represent the risk of the job
+
     durations and cost are categorized in to 3 types
     
     O: optimistic, shortest time/cost possible to complete this job
@@ -22,7 +24,7 @@ class Job:
     
     P: pessimistic, longest time/cost possible to complete this job
     """
-    def __init__(self, name: str, id_: int, job_type: JOB_TYPE, durations: list, costs: list, duration_weight: list = [1, 4, 1], cost_weight: list = [1, 4, 1]):
+    def __init__(self, name: str, id_: int, job_type: JOB_TYPE, durations: list, costs: list, risk: float, duration_weight: list = [1, 4, 1], cost_weight: list = [1, 4, 1]):
         od, ed, pd = durations
         oc, ec, pc = costs
         assert pd > ed > od, "OD must be the smallest and PD must be the largest"
@@ -44,6 +46,7 @@ class Job:
 
         self.weighted_duration = 0
         self.weighted_cost = 0
+        self.risk = risk
 
         self.calculated_weighted_duration()
         self.calculated_weighted_cost()

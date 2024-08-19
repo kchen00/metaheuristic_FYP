@@ -22,7 +22,8 @@ class Solution:
         
         self.make_span = 0
         self.cost = 0
-        self.balance = 0
+        self.load_balance = 0 
+        self.risk_balance = 0
         
         self.selected = 1
 
@@ -79,13 +80,16 @@ class Anneal:
         cost_t, cost = helper.calculate_cost(candidate.state)
         candidate.cost = cost
 
-        penalty = helper.calculate_distribution_penalty(candidate.state, self.jobs, self.teams)
-        candidate.balance = penalty
+        load_penalty = helper.calculate_distribution_penalty(candidate.state, self.jobs, self.teams)
+        candidate.load_balance = load_penalty
+
+        risk_penalty = helper.calculate_risk_penalty(candidate.state, self.teams)
+        candidate.risk_balance = risk_penalty
 
         candidate.fitness = self.make_span_weight * make_span + self.cost_weight * cost
         candidate.fitness /= sum([self.make_span_weight, self.cost_weight])
         
-        candidate.fitness += penalty
+        candidate.fitness += load_penalty + risk_penalty
 
     def create_neighbour_solution(self, amount: int, change_prob: float, max_changes: int = None) -> Solution:
         """
@@ -150,7 +154,7 @@ class Anneal:
         self.fitness.append(np.mean([n.fitness for n in self.neighbours]))
         self.make_span.append(np.mean([n.make_span for n in self.neighbours]))
         self.cost.append(np.mean([n.cost for n in self.neighbours]))
-        self.penalty.append(np.mean([n.balance for n in self.neighbours]))
+        self.penalty.append(np.mean([n.load_balance+n.risk_balance for n in self.neighbours]))
 
     def cool_down(self):
         self.temperature *= self.cooling_rate
@@ -161,13 +165,13 @@ def run() -> Solution:
     jobs = helper.create_random_jobs(10)
     teams = helper.create_random_team(5)
 
-    anneal = Anneal(jobs, teams, cooling_rate=0.99, temperature=1000)
+    anneal = Anneal(jobs, teams, cooling_rate=0.99, temperature=8000)
     anneal.current = anneal.create_initial_solution()
     anneal.evaluate_candidate(anneal.current)
     
-    while anneal.iteration <= 500:
+    while anneal.iteration <= 800:
         print(f"iteration {anneal.iteration} | temp: {anneal.temperature}")
-        anneal.neighbours = anneal.create_neighbour_solution(5, np.exp(-anneal.iteration/anneal.temperature), 1)
+        anneal.neighbours = anneal.create_neighbour_solution(5, np.exp(-anneal.iteration/anneal.temperature))
         for n in anneal.neighbours:
             anneal.evaluate_candidate(n)
         anneal.decide_solution()
@@ -179,7 +183,7 @@ def run() -> Solution:
     # plt.plot(anneal.make_span)
     # plt.plot(anneal.cost)
     # plt.plot(anneal.penalty)
-    plt.legend(["fitness", "make_span", "cost", "penalty"])
+    # plt.legend(["fitness", "make_span", "cost", "penalty"])
     plt.show()
 
     return anneal.best
@@ -187,6 +191,7 @@ def run() -> Solution:
 
 solution = run()
 helper.print_schedule(solution.state)
-print(f"Solution job balance: {solution.balance}")
+print(f"Solution job balance: {solution.load_balance}")
+print(f"Solution risk balance: {solution.risk_balance}")
 print(f"Solution is selected at iteration {solution.selected}")
 print(f"Solution string: {solution.state}")
