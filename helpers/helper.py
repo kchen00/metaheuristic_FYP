@@ -11,14 +11,15 @@ def create_random_jobs(amount:int) -> list:
     returns a list of random jobs
     """
     random_jobs = []
-    o_durations = [random.randrange(10, 50) for i in range(amount)]
-    o_costs = [random.randrange(100, 500) for i in range(amount)]
+    o_durations = [random.uniform(10, 50) for i in range(amount)]
+    o_costs = [random.uniform(100, 500) for i in range(amount)]
+    risks = [random.uniform(0.1, 0.9) for i in range(amount)]
 
     for i in range(amount):
         durations = [o_durations[i], o_durations[i]+5, o_durations[i]+10]
         costs = [o_costs[i], o_costs[i]+5, o_costs[i]+10]
         
-        new_job = Job(f"job_{i+1}", i+1, JOB_TYPE.PLANNING, durations, costs)
+        new_job = Job(f"job_{i+1}", i+1, JOB_TYPE.PLANNING, durations, costs, risks[i])
         random_jobs.append(new_job)
 
     return random_jobs
@@ -88,6 +89,22 @@ def calculate_distribution_penalty(schedule: list, jobs: list, teams: list) -> f
         diff = j - avg_job_per_team
         diff_squared = diff ** 2
         mean_diff_squared += diff_squared / number_of_teams
+    
+    return mean_diff_squared
+
+def calculate_risk_penalty(schedule: list, teams: list) -> float:
+    """
+    calculate the risk of the schedule based on the job and team distribution
+    """
+    sum_of_job_risk = sum([s.job.risk for s in schedule])
+    mean_of_risk = sum_of_job_risk / len(teams)
+
+    mean_diff_squared = 0
+    for t in teams:
+        team_job_risk = sum([s.job.risk for s in schedule if s.team == t])
+        diff = team_job_risk - mean_of_risk
+        diff_squared = diff ** 2
+        mean_diff_squared += diff_squared
     
     return mean_diff_squared
 
