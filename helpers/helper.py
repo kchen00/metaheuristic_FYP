@@ -116,8 +116,9 @@ def print_schedule(schedule: list):
     duration_t, make_span = calculate_make_span(schedule)
     cost_t, cost = calculate_cost(schedule)
 
-    print(f"Make span: T {make_span:.2f}")
-    print(f"Cost: $ {cost:.2f}")
+    print("==================================================================")
+    print(f"Make span: {make_span:.2f} days")
+    print(f"Cost: $ {cost:.2f}k")
     print(f"Team {duration_t.name} has the highest make span")
     print(f"Team {cost_t.name} has the highest cost")
 
@@ -125,8 +126,10 @@ def print_schedule(schedule: list):
         print(job_type.name)
         t: Team
         for t in teams:
-            job_slot = [s.job.name for s in schedule if s.team == t and s.job.job_type == job_type]
-            make_span = sum([s.make_span for s in schedule if s.team == t and s.job.job_type == job_type])
-            cost = sum([s.cost for s in schedule if s.team == t and s.job.job_type == job_type])
-            print(f"{t.name} | T {make_span:.2f} | $ {cost:.2f} | {job_slot}")
+            if t.job_focus == job_type:
+                job_slot = [s.job.name for s in schedule if s.team == t and s.job.job_type == job_type]
+                make_span = sum([s.make_span for s in schedule if s.team == t and s.job.job_type == job_type])
+                cost = sum([s.cost for s in schedule if s.team == t and s.job.job_type == job_type])
+                print(f"{t.name} | {make_span:.2f} days | $ {cost:.1f}k | {job_slot}")
+        print("")
     
