@@ -5,6 +5,7 @@ from helpers import helper
 import random
 import numpy as np
 from matplotlib import pyplot as plt
+import config
 
 random.seed(1)
 
@@ -233,9 +234,9 @@ class Population:
             self.chromosomes = random.sample(self.chromosomes, self.size)
 
 def run() -> Chromosome:
-    jobs = helper.create_random_jobs(10)
-    teams = helper.create_random_team(5)
-    population = Population(jobs, teams, 400, cross_over_rate=0.98, mutation_rate=0.3)
+    jobs = config.jobs
+    teams = config.teams
+    population = Population(jobs, teams, 400, cross_over_rate=0.98, mutation_rate=0.5)
     population.generate_chromosomes(population.size)
     
     while population.generation <= 800:

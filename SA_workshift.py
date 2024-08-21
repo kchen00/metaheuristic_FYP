@@ -5,6 +5,7 @@ from models.assignment import Assignment
 import random
 import numpy as np
 from matplotlib import pyplot as plt
+import config
 
 random.seed(1)
 
@@ -162,10 +163,10 @@ class Anneal:
         self.temperature = max(self.temperature, 0.0001)
 
 def run() -> Solution:
-    jobs = helper.create_random_jobs(10)
-    teams = helper.create_random_team(5)
+    jobs = config.jobs
+    teams = config.teams
 
-    anneal = Anneal(jobs, teams, cooling_rate=0.99, temperature=8000)
+    anneal = Anneal(jobs, teams, cooling_rate=0.99, temperature=9000)
     anneal.current = anneal.create_initial_solution()
     anneal.evaluate_candidate(anneal.current)
     
