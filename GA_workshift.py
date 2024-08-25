@@ -7,8 +7,6 @@ import numpy as np
 from matplotlib import pyplot as plt
 import config
 
-random.seed(1)
-
 class Gene(Assignment):
     def __init__(self, j: Job, t: Team) -> None:
         super().__init__(j, t)
@@ -22,9 +20,11 @@ class Chromosome:
         
         # how balance is the job distribution
         self.load_balance = 0
-        # how balance if the job risk distribution
+        # how balance of the job risk distribution
         self.risk_balance = 0
-        
+        # how parallel if the job distribution
+        self.parallel = 0
+
         self.selected = 1
     
     def cross_over(self, partner: 'Chromosome') -> 'Chromosome':
@@ -76,6 +76,7 @@ class Population:
         # list of teams and jobs
         self.jobs = jobs
         self.teams = teams
+        self.job_topo_order = helper.kahn_sort(self.jobs)
         
         # weights on what to prioritize
         self.make_span_weight = make_span_weight
@@ -126,12 +127,15 @@ class Population:
             
             risk_penalty = helper.calculate_risk_penalty(c.genes, self.teams)
             c.risk_balance = risk_penalty
+
+            parallel_penalty = helper.calculate_parallel_penalty(c.genes, self.teams, self.job_topo_order)
+            c.parallel = parallel_penalty
             
             c.fitness = self.make_span_weight * make_span + self.cost_weight * cost
             c.fitness /= sum([self.make_span_weight, self.cost_weight])
             
             # adding penalty to final fitness because we minimizing the fitness
-            c.fitness += load_penalty + risk_penalty
+            c.fitness += load_penalty + risk_penalty + parallel_penalty
 
         current_best = min(self.chromosomes, key=lambda x: x.fitness)
         
@@ -236,10 +240,10 @@ class Population:
 def run() -> Chromosome:
     jobs = config.jobs
     teams = config.teams
-    population = Population(jobs, teams, 400, cross_over_rate=0.98, mutation_rate=0.5)
+    population = Population(jobs, teams, 400, cross_over_rate=0.98, mutation_rate=0.1)
     population.generate_chromosomes(population.size)
     
-    while population.generation <= 800:
+    while population.generation <= 400:
         print(f"Generation {population.generation} | population: {len(population.chromosomes)}")
         population.evaluate_chromosome()
         population.chromosomes = population.rank_select(250)
@@ -255,5 +259,6 @@ solution = run()
 helper.print_schedule(solution.genes)
 print(f"Solution job balance: {solution.load_balance}")
 print(f"Solution risk balance: {solution.risk_balance}")
+print(f"Solution parallel balance: {solution.parallel}")
 print(f"Solution is selected at generation {solution.selected}")
 print(f"Solution string {solution.genes}")

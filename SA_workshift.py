@@ -7,8 +7,6 @@ import numpy as np
 from matplotlib import pyplot as plt
 import config
 
-random.seed(1)
-
 class State(Assignment):
     def __init__(self, j: Job, t: Team):
         super().__init__(j, t)
@@ -25,6 +23,7 @@ class Solution:
         self.cost = 0
         self.load_balance = 0 
         self.risk_balance = 0
+        self.parallel = 0
         
         self.selected = 1
 
@@ -35,6 +34,7 @@ class Anneal:
     def __init__(self, jobs: list, teams: list, cooling_rate: float = 0.95, temperature: float = 1, make_span_weight: float = 0.5, cost_weight: float = 0.5) -> None:
         self.jobs = jobs
         self.teams = teams
+        self.job_topo_order = helper.kahn_sort(self.jobs)
 
         self.iteration = 1
         self.cooling_rate = cooling_rate
@@ -50,10 +50,7 @@ class Anneal:
         # the best candidate overall
         self.best = None
         
-        self.fitness = []
-        self.cost = []
-        self.make_span = []
-        self.penalty = []
+        self.hist = []
 
     def create_initial_solution(self) -> Solution:
         """
@@ -87,10 +84,13 @@ class Anneal:
         risk_penalty = helper.calculate_risk_penalty(candidate.state, self.teams)
         candidate.risk_balance = risk_penalty
 
+        parallel_penalty = helper.calculate_parallel_penalty(candidate.state, self.teams, self.job_topo_order)
+        candidate.parallel = parallel_penalty
+
         candidate.fitness = self.make_span_weight * make_span + self.cost_weight * cost
         candidate.fitness /= sum([self.make_span_weight, self.cost_weight])
         
-        candidate.fitness += load_penalty + risk_penalty
+        candidate.fitness += load_penalty + risk_penalty + parallel_penalty
 
     def create_neighbour_solution(self, amount: int, change_prob: float, max_changes: int = None) -> Solution:
         """
@@ -135,9 +135,10 @@ class Anneal:
         # if the diff is negative, means that neighbour is better than current solution
         # always accept the solution when diff < 0
         # no need to evaluate when diff == 0
-        if diff < 0:
+        if diff <= 0:
             self.current = best_neighbour
         else:
+            # NOTE the diff must be positive number
             accept_prob = np.exp(-diff/self.temperature)
             if random.random() < accept_prob:
                 print("RNG god has choosen the worse solution")
@@ -152,10 +153,7 @@ class Anneal:
                 self.best = self.current
                 print(f"New best found! | {self.best.state}")
         
-        self.fitness.append(np.mean([n.fitness for n in self.neighbours]))
-        self.make_span.append(np.mean([n.make_span for n in self.neighbours]))
-        self.cost.append(np.mean([n.cost for n in self.neighbours]))
-        self.penalty.append(np.mean([n.load_balance+n.risk_balance for n in self.neighbours]))
+        self.hist.append(np.mean([n.fitness for n in self.neighbours]))
 
     def cool_down(self):
         self.temperature *= self.cooling_rate
@@ -172,7 +170,7 @@ def run() -> Solution:
     
     while anneal.iteration <= 800:
         print(f"iteration {anneal.iteration} | temp: {anneal.temperature}")
-        anneal.neighbours = anneal.create_neighbour_solution(5, np.exp(-anneal.iteration/anneal.temperature))
+        anneal.neighbours = anneal.create_neighbour_solution(5, np.exp(-anneal.iteration/anneal.temperature), 2)
         for n in anneal.neighbours:
             anneal.evaluate_candidate(n)
         anneal.decide_solution()
@@ -180,19 +178,27 @@ def run() -> Solution:
 
         anneal.iteration += 1
     
-    plt.plot(anneal.fitness)
-    # plt.plot(anneal.make_span)
-    # plt.plot(anneal.cost)
-    # plt.plot(anneal.penalty)
-    # plt.legend(["fitness", "make_span", "cost", "penalty"])
+    plt.plot(anneal.hist)
     plt.show()
 
     return anneal.best
 
+def test():
+    temp = 5
+    accept_prob = []
+    for i in range(100):
+        diff = 3
+        prob = np.exp(-diff / temp)
+        accept_prob.append(prob)
+        temp *= 0.96
+
+    plt.plot(accept_prob)
+    plt.show()
 
 solution = run()
 helper.print_schedule(solution.state)
 print(f"Solution job balance: {solution.load_balance}")
 print(f"Solution risk balance: {solution.risk_balance}")
+print(f"Solution parallel balance: {solution.parallel}")
 print(f"Solution is selected at iteration {solution.selected}")
 print(f"Solution string: {solution.state}")
