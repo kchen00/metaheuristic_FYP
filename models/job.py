@@ -48,6 +48,8 @@ class Job:
         self.weighted_cost = 0
         self.risk = risk
 
+        self.dependencies = []
+
         self.calculated_weighted_duration()
         self.calculated_weighted_cost()
 
@@ -77,6 +79,12 @@ class Job:
         weighted_cost /= sum(self.duration_weight)
         self.weighted_cost = weighted_cost
     
+    def depends_on(self, dependencies: list):
+        """
+        assign dependency to the job
+        """        
+        self.dependencies = dependencies
+
     def __repr__(self) -> str:
         return str(self.id_)
 
