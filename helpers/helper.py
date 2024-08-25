@@ -6,6 +6,12 @@ from models.job import Job, JOB_TYPE
 from models.team import Team
 import random
 
+class CycleDetected(Exception):
+    """
+    raised when a cycle is detected in job dependency
+    """
+    pass
+
 def create_random_jobs(amount:int) -> list:
     """
     returns a list of random jobs
@@ -38,6 +44,36 @@ def create_random_team(amount: int) -> list:
 
     return random_teams
 
+def kahn_sort(jobs: list) -> list:
+    """
+    using kahn algorithm to topological sort the jobs
+
+    return a list of set containing jobs that can be processed in parallel in each level
+    """
+    topo_order = []
+
+    while len(jobs) > 0:
+        # find the job that can be process in parallel
+        parallel_jobs = {j for j in jobs if len(j.dependencies) == 0}
+
+        # raise error when cycle is detected
+        # cycle is detected when there is leftover node in the graph but parallel jobs is not found
+        if len(parallel_jobs) == 0:
+            print(f"Cycle detected among {jobs}")
+            raise CycleDetected
+        
+        # append the parallel nodes to the topo order 
+        topo_order.append(parallel_jobs)
+        
+        # remove the independent node from the graph
+        jobs = list(set(jobs) - parallel_jobs)
+
+        # remove the dependencies from the rest of the node
+        j: Job
+        for j in jobs:
+            j.dependencies = list(set(j.dependencies) - parallel_jobs)
+
+    return topo_order
 
 def calculate_make_span(schedule: list) -> tuple:
     """
@@ -108,6 +144,21 @@ def calculate_risk_penalty(schedule: list, teams: list) -> float:
     
     return mean_diff_squared
 
+def calculate_parallel_penalty(schedule: list, teams: list, topo_order: list) -> float:
+    """
+    calculate the penalty of job and team assigment based on the parallel distribution of the jobs
+    """
+    penalty = 0.0
+    for t in teams:
+        job = {s.job for s in schedule if s.team == t}
+        # only check when the team is assigned with multiple jobs
+        if len(job) > 1:
+            for o in topo_order:
+                if job <= o and len(o) > 1:
+                    penalty += len(job) ** 2
+
+    return penalty
+
 def print_schedule(schedule: list):
     schedule.sort(key=lambda x: x.make_span)
     teams = list({s.team for s in schedule})
@@ -127,7 +178,7 @@ def print_schedule(schedule: list):
         t: Team
         for t in teams:
             if t.job_focus == job_type:
-                job_slot = [s.job.name for s in schedule if s.team == t and s.job.job_type == job_type]
+                job_slot = [s.job for s in schedule if s.team == t and s.job.job_type == job_type]
                 make_span = sum([s.make_span for s in schedule if s.team == t and s.job.job_type == job_type])
                 cost = sum([s.cost for s in schedule if s.team == t and s.job.job_type == job_type])
                 print(f"{t.name} | {make_span:.2f} days | $ {cost:.1f}k | {job_slot}")
