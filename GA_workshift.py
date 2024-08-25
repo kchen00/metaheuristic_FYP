@@ -115,10 +115,10 @@ class Population:
         c: Chromosome
         for c in self.chromosomes:
             # fitness in terms of make span
-            make_span_t, make_span = helper.calculate_make_span(c.genes)
+            make_span = helper.calculate_make_span(c.genes, self.job_topo_order)
             c.make_span = make_span
             # fitness in terms of cost
-            cost_t, cost = helper.calculate_cost(c.genes)
+            cost = helper.calculate_cost(c.genes, self.teams)
             c.cost = cost
             
             # penalty in terms of task distribution

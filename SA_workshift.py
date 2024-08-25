@@ -72,10 +72,10 @@ class Anneal:
         evaluates the candidate solution
         """
         # fitness in terms of make span
-        make_span_t, make_span = helper.calculate_make_span(candidate.state)
+        make_span = helper.calculate_make_span(candidate.state, self.job_topo_order)
         candidate.make_span = make_span
         
-        cost_t, cost = helper.calculate_cost(candidate.state)
+        cost = helper.calculate_cost(candidate.state, self.teams)
         candidate.cost = cost
 
         load_penalty = helper.calculate_distribution_penalty(candidate.state, self.jobs, self.teams)
@@ -164,13 +164,13 @@ def run() -> Solution:
     jobs = config.jobs
     teams = config.teams
 
-    anneal = Anneal(jobs, teams, cooling_rate=0.99, temperature=9000)
+    anneal = Anneal(jobs, teams, cooling_rate=0.99, temperature=1000)
     anneal.current = anneal.create_initial_solution()
     anneal.evaluate_candidate(anneal.current)
     
     while anneal.iteration <= 800:
         print(f"iteration {anneal.iteration} | temp: {anneal.temperature}")
-        anneal.neighbours = anneal.create_neighbour_solution(5, np.exp(-anneal.iteration/anneal.temperature), 2)
+        anneal.neighbours = anneal.create_neighbour_solution(10, np.exp(-anneal.iteration/anneal.temperature), 1)
         for n in anneal.neighbours:
             anneal.evaluate_candidate(n)
         anneal.decide_solution()

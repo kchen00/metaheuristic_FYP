@@ -51,64 +51,66 @@ def kahn_sort(jobs: list) -> list:
     return a list of set containing jobs that can be processed in parallel in each level
     """
     topo_order = []
+    jobs_temp = jobs
+    dependencies_temp = dict()
 
-    while len(jobs) > 0:
+    for j in jobs_temp:
+        dependencies_temp[j] = j.dependencies
+
+    while len(jobs_temp) > 0:
         # find the job that can be process in parallel
-        parallel_jobs = {j for j in jobs if len(j.dependencies) == 0}
+        parallel_jobs = {j for j in jobs_temp if len(j.dependencies) == 0}
 
         # raise error when cycle is detected
         # cycle is detected when there is leftover node in the graph but parallel jobs is not found
         if len(parallel_jobs) == 0:
-            print(f"Cycle detected among {jobs}")
+            print(f"Cycle detected among {jobs_temp}")
             raise CycleDetected
         
         # append the parallel nodes to the topo order 
         topo_order.append(parallel_jobs)
         
         # remove the independent node from the graph
-        jobs = list(set(jobs) - parallel_jobs)
+        jobs_temp = list(set(jobs_temp) - parallel_jobs)
 
         # remove the dependencies from the rest of the node
         j: Job
-        for j in jobs:
+        for j in jobs_temp:
             j.dependencies = list(set(j.dependencies) - parallel_jobs)
+
+    for j in jobs:
+        j.dependencies = dependencies_temp[j]
 
     return topo_order
 
-def calculate_make_span(schedule: list) -> tuple:
+def calculate_make_span(schedule: list, topo_order: list) -> tuple:
     """
     given the schedule, return the team with highest make span and the make span
     
     Returns:
         (Team, make_span)
     """
-    teams = {s.team for s in schedule}
-    make_span = {}
+    total_make_span = 0
 
-    for t in teams:
-        make_span[t] = sum([s.make_span for s in schedule if s.team == t])
+    for o in topo_order:
+        make_span = [s.make_span for s in schedule if s.job in o]
+        total_make_span += max(make_span)
     
-    max_team = max(make_span, key=make_span.get)
-    
-    return max_team, make_span[max_team]
+    return total_make_span
 
-def calculate_cost(schedule: list):
+def calculate_cost(schedule: list, teams: list):
     """
-    given the schedule, return the team with highest cost and the cost
+    given the schedule, calculate the total cost
     
     Returns:
         (Team, cost)
     """
-    teams = {s.team for s in schedule}
-    cost = {}
-
+    total_cost = 0
     for t in teams:
-        cost[t] = sum([s.cost for s in schedule if s.team == t])
+        cost = sum([s.cost for s in schedule if s.team == t])
+        total_cost += cost
     
-    max_team = max(cost, key=cost.get)
-    total_cost = sum([s.cost for s in schedule])
-    
-    return max_team, total_cost
+    return total_cost
 
 def calculate_distribution_penalty(schedule: list, jobs: list, teams: list) -> float:
     """
@@ -159,28 +161,71 @@ def calculate_parallel_penalty(schedule: list, teams: list, topo_order: list) ->
 
     return penalty
 
-def print_schedule(schedule: list):
-    schedule.sort(key=lambda x: x.make_span)
-    teams = list({s.team for s in schedule})
-    teams.sort(key=lambda x: x.name)
+def find_longest_make_span(schedule: list, teams: list):
+    """
+    find the team with the longest make span and its make span
+    """
+    team_make_span = dict()
+    for t in teams:
+        total_make_span = sum([s.make_span for s in schedule if s.team == t])
+        team_make_span[t] = total_make_span
+    
+    max_team = max(team_make_span, key=team_make_span.get)
+    
+    return max_team, team_make_span[max_team] 
 
-    duration_t, make_span = calculate_make_span(schedule)
-    cost_t, cost = calculate_cost(schedule)
+def find_expensive_cost(schedule: list, teams: list):
+    """
+    find the team with the most expensive cost and its cost
+    """
+    team_cost = dict()
+    for t in teams:
+        total_make_span = sum([s.cost for s in schedule if s.team == t])
+        team_cost[t] = total_make_span
+    
+    max_team = max(team_cost, key=team_cost.get)
+    
+    return max_team, team_cost[max_team] 
+
+def print_schedule(schedule: list):
+    teams = list({s.team for s in schedule})
+    jobs = list({s.job for s in schedule})
+    topo_order = kahn_sort(jobs)
+    
+    make_span = calculate_make_span(schedule, topo_order)
+    cost = calculate_cost(schedule, teams)
+
+    longest_team, longest_make_span = find_longest_make_span(schedule, teams)
+    expensive_team, expensive_cost = find_expensive_cost(schedule, teams)
 
     print("==================================================================")
-    print(f"Make span: {make_span:.2f} days")
-    print(f"Cost: $ {cost:.2f}k")
-    print(f"Team {duration_t.name} has the highest make span")
-    print(f"Team {cost_t.name} has the highest cost")
+    print(f"Total Make span: {make_span:.2f} days")
+    print(f"Total Cost: $ {cost:.2f} k")
+    print(f"Team {longest_team.name} has the highest make span ({longest_make_span:.2f} days)")
+    print(f"Team {expensive_team.name} has the highest cost ($ {expensive_cost:.1f}k)")
 
-    for job_type in JOB_TYPE: 
-        print(job_type.name)
-        t: Team
-        for t in teams:
-            if t.job_focus == job_type:
-                job_slot = [s.job for s in schedule if s.team == t and s.job.job_type == job_type]
-                make_span = sum([s.make_span for s in schedule if s.team == t and s.job.job_type == job_type])
-                cost = sum([s.cost for s in schedule if s.team == t and s.job.job_type == job_type])
-                print(f"{t.name} | {make_span:.2f} days | $ {cost:.1f}k | {job_slot}")
-        print("")
+    current_phase = JOB_TYPE.PLANNING
+    print_phase = True
+    for o in topo_order:
+        j: Job
+        for j in o:
+            if j.job_type != current_phase:
+                current_phase = j.job_type
+                print_phase = True
+            
+            if print_phase:
+                print("")
+                print(f"{current_phase.name}")
+                print("---------------------------------------")
+                print_phase = False
+            
+            for s in schedule:
+                if s.job == j:
+                    print(f"{s.team.name} | {s.make_span:.2f} days | $ {s.cost:.1f}k | {j.name}")
+                    break
+        
+        print("---------------------------------------")
+        
+
+
     
