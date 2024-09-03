@@ -15,7 +15,7 @@ class Path(Assignment):
     """
     def __init__(self, j: Job, t: Team) -> None:
         super().__init__(j, t)
-        self.pheromone = 10
+        self.pheromone = 1
 
 class Ant:
     """
@@ -118,15 +118,11 @@ class AntColony:
     
     def update_pheromone(self) -> None:
         """
-        leave, evaporate and normalize the pheromone
+        updates the pheromone
         """
-        # all ant leaving pheromone
-        # a: Ant
-        # for a in self.ants:
-        #     a.leave_pheromone()
-        
-        # best ant leaving pheromone
-        self.best.leave_pheromone()
+        # all ants leaves pheromone
+        for a in self.ants:
+            a.leave_pheromone()
         
         # evaporates the pheromone
         p: Path
@@ -134,9 +130,9 @@ class AntColony:
             p.pheromone *= (1 - self.evaporate)
 
 def run() -> Ant:
-    ant_colony = AntColony(200, 0.1, config.jobs, config.teams)
+    ant_colony = AntColony(50, 0.8, config.jobs, config.teams)
 
-    while ant_colony.iteration <= 400:
+    while ant_colony.iteration <= 800:
         print(f"Iteration {ant_colony.iteration}")
         
         a: Ant
