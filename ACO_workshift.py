@@ -68,8 +68,8 @@ class AntColony:
         self.make_span_weight = make_span_weight
         self.cost_weight = cost_weight
 
-        # the change of pheromone for each iteration
-        self.evaporate = evaporate
+        # the amount pheromone left after each iteration
+        self.p_left = 1 - evaporate
 
         # all the possible paths that can be taken by the ants
         self.paths = []
@@ -120,17 +120,18 @@ class AntColony:
         """
         updates the pheromone
         """
-        # all ants leaves pheromone
-        for a in self.ants:
-            a.leave_pheromone()
-        
         # evaporates the pheromone
         p: Path
         for p in self.paths:
-            p.pheromone *= (1 - self.evaporate)
+            p.pheromone *= self.p_left
+        
+        # ants leaving pheromone
+        for a in self.ants:
+            a.leave_pheromone()
+        
 
 def run() -> Ant:
-    ant_colony = AntColony(50, 0.8, config.jobs, config.teams)
+    ant_colony = AntColony(50, 0.5, config.jobs, config.teams)
 
     while ant_colony.iteration <= 800:
         print(f"Iteration {ant_colony.iteration}")
