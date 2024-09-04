@@ -117,7 +117,6 @@ class Anneal:
                 state.append(new_state)
                         
             neighbour = Solution(state)
-            neighbour.selected = self.iteration
             neighbours.append(neighbour)
         
         return neighbours
@@ -140,20 +139,9 @@ class Anneal:
         else:
             # NOTE the diff must be positive number
             accept_prob = np.exp(-diff/self.temperature)
-            if random.random() < accept_prob:
+            if random.random() <= accept_prob:
                 print("RNG god has choosen the worse solution")
                 self.current = best_neighbour
-        
-        # keeping track of the best solution 
-        if self.iteration == 1:
-            self.best = self.current
-            print(f"New best found! | {self.best.state}")
-        else:
-            if self.current.fitness < self.best.fitness:
-                self.best = self.current
-                print(f"New best found! | {self.best.state}")
-        
-        self.hist.append(np.mean([n.fitness for n in self.neighbours]))
 
     def cool_down(self):
         self.temperature *= self.cooling_rate
@@ -176,24 +164,34 @@ def run() -> Solution:
         anneal.decide_solution()
         anneal.cool_down()
 
+        if anneal.iteration == 1:
+            anneal.best = anneal.current
+            print(f"New best found! | {anneal.best.state}")
+        else:
+            if anneal.current.fitness < anneal.best.fitness:
+                anneal.best = anneal.current
+                anneal.best.selected = anneal.iteration
+                print(f"New best found! | {anneal.best.state}")
+
+        history = (
+            np.mean([n.fitness for n in anneal.neighbours]),
+            anneal.best.fitness,
+            anneal.temperature
+        )
+        anneal.hist.append(history)
+
         anneal.iteration += 1
     
-    plt.plot(anneal.hist)
+    fig, ax1 = plt.subplots()
+    ax1.plot([h[0] for h in anneal.hist], color="g", label="Average fitness")
+    ax1.plot([h[1] for h in anneal.hist], color="b", label="Best fitness")
+    ax1.legend(loc="upper left")
+    ax2 = ax1.twinx()
+    ax2.plot([h[2] for h in anneal.hist], color="r", label="Temperature")
+    ax2.legend(loc="upper right")
     plt.show()
 
     return anneal.best
-
-def test():
-    temp = 5
-    accept_prob = []
-    for i in range(100):
-        diff = 3
-        prob = np.exp(-diff / temp)
-        accept_prob.append(prob)
-        temp *= 0.96
-
-    plt.plot(accept_prob)
-    plt.show()
 
 solution = run()
 helper.print_schedule(solution.state)

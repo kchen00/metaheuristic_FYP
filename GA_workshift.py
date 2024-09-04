@@ -111,6 +111,8 @@ class Population:
     def evaluate_chromosome(self):
         """
         evaluates the fitness of the chromosome
+        
+        NOTE:  STRICLY FOR EVALUATING FITNESS
         """
         c: Chromosome
         for c in self.chromosomes:
@@ -136,19 +138,6 @@ class Population:
             
             # adding penalty to final fitness because we minimizing the fitness
             c.fitness += load_penalty + risk_penalty + parallel_penalty
-
-        current_best = min(self.chromosomes, key=lambda x: x.fitness)
-        
-        if self.generation == 1:
-            self.best = current_best
-            print(f"New best found! | {current_best.genes}")
-        else:
-            if current_best.fitness < self.best.fitness:
-                self.best = current_best     
-                self.best.selected = self.generation         
-                print(f"New best found! | {current_best.genes}")
-        
-        self.hist.append(np.mean([c.fitness for c in self.chromosomes]))
 
     def rank_select(self, amount: int) -> list:
         """
@@ -246,11 +235,32 @@ def run() -> Chromosome:
     while population.generation <= 400:
         print(f"Generation {population.generation} | population: {len(population.chromosomes)}")
         population.evaluate_chromosome()
+        
+        current_best = min(population.chromosomes, key=lambda x: x.fitness)
+        if population.generation == 1:
+            population.best = current_best
+            print(f"New best found! | {current_best.genes}")
+        else:
+            if current_best.fitness < population.best.fitness:
+                population.best = current_best     
+                population.best.selected = population.generation         
+                print(f"New best found! | {current_best.genes}")
+
+        history = (
+            np.mean([c.fitness for c in population.chromosomes]),
+            population.best.fitness
+        )
+        population.hist.append(history)
+        
         population.chromosomes = population.rank_select(250)
         population.produce_bebe()
+        
         population.generation += 1
 
-    plt.plot(population.hist)
+    fig, ax1 = plt.subplots()
+    ax1.plot([h[0] for h in population.hist], color="g", label="Average fitness")
+    ax1.plot([h[1] for h in population.hist], color="b", label="Best fitness")
+    ax1.legend(loc="upper right")
     plt.show()
 
     return population.best

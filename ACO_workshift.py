@@ -131,7 +131,7 @@ class AntColony:
         
 
 def run() -> Ant:
-    ant_colony = AntColony(50, 0.5, config.jobs, config.teams)
+    ant_colony = AntColony(10, 0.1, config.jobs, config.teams)
 
     while ant_colony.iteration <= 800:
         print(f"Iteration {ant_colony.iteration}")
@@ -141,7 +141,9 @@ def run() -> Ant:
             if a != ant_colony.best:
                 a.explore(ant_colony.paths, ant_colony.jobs)
                 ant_colony.evaluate_ant(a)
-
+        
+        ant_colony.update_pheromone()
+        
         # finding the best for each iteration
         best = min(ant_colony.ants, key=lambda x: x.fitness)
         if ant_colony.iteration == 1:
@@ -153,13 +155,24 @@ def run() -> Ant:
                 ant_colony.best.selected = ant_colony.iteration
                 print(f"new best found | {ant_colony.best.path_taken}")
 
-        ant_colony.update_pheromone()
-        
+        history = (
+           np.mean([a.fitness for a in ant_colony.ants]),
+           ant_colony.best.fitness,
+           np.mean([p.pheromone for p in ant_colony.paths]),
+           np.mean([p.pheromone for p in ant_colony.best.path_taken]),
+        )
+        ant_colony.hist.append(history)
+
         ant_colony.iteration += 1
-        ant_colony.hist.append(np.mean([a.fitness for a in ant_colony.ants]))
     
-    print([p.pheromone for p in ant_colony.paths])
-    plt.plot(ant_colony.hist)
+    fig, ax1 = plt.subplots()
+    ax1.plot([h[0] for h in ant_colony.hist], color="g", label="Average fitness")
+    ax1.plot([h[1] for h in ant_colony.hist], color="b", label="Best fitness")
+    ax1.legend(loc="upper left")
+    ax2 = ax1.twinx()
+    ax2.plot([h[2] for h in ant_colony.hist], color="r", label="Average pheromones")
+    ax2.plot([h[3] for h in ant_colony.hist], color="m", label="Best pheromones")
+    ax2.legend(loc="upper right")
     plt.show()
 
     return ant_colony.best
