@@ -27,40 +27,29 @@ class Chromosome:
 
         self.selected = 1
     
-    def cross_over(self, partner: 'Chromosome') -> 'Chromosome':
+    def cross_over(self, partner: 'Chromosome') -> tuple:
         """
-        produce new chromosome using a single point cross over
-        """
+        produce two new chromosome using a single point cross over
 
-        # some assert check to make sure that all things are correct
-        # making sure that the length of genes are the same
-        assert len(self.genes) == len(partner.genes)
-        for s, p in zip(self.genes, partner.genes):
-            # make sure the job object is the same
-            assert s.job == p.job, f"{s.job.name} is not {p.job.name}"
-        
-        # choosing a random point for cross over
+        returns the two new chomosome produced
+        """
         random_point = random.randint(1, len(self.genes) - 1)
 
-        # slicing genes from self and partner
-        upper_gene = self.genes[:random_point]
-        lower_gene = partner.genes[random_point:]
-        comb_gene = upper_gene + lower_gene
+        # genes for 1st bebe
+        u1 = self.genes[:random_point]
+        l1 = partner.genes[random_point:]
+        
+        # gene for 2nd bebe
+        u2 = partner.genes[:random_point]
+        l2 = self.genes[random_point:]
 
-        # extracting the job and team from original genes
-        # create a new gene object from it
-        bebe_gene = []
-        g: Gene
-        for g in comb_gene:
-            new_gene = Gene(g.job, g.team)
-            bebe_gene.append(new_gene)
+        b1_gene = u1 + l1
+        b2_gene = u2 + l2
 
-        # some assertion check again to make sure things are correct
-        for s, b in zip(self.genes, bebe_gene):
-            assert s.job == b.job
+        b1 = Chromosome(b1_gene)
+        b2 = Chromosome(b2_gene)
 
-        bebe = Chromosome(bebe_gene)
-        return bebe
+        return b1, b2
 
 class Population:
     def __init__(self, jobs: list, teams: list, size: int, cross_over_rate: float = 0.95, mutation_rate: float = 0.1, make_span_weight: float = 0.5, cost_weight: float = 0.5):
@@ -78,6 +67,13 @@ class Population:
         self.teams = teams
         self.job_topo_order = helper.kahn_sort(self.jobs)
         
+        # gnerate all possible genes during start
+        self.all_possible_genes = []
+        self.generate_all_possible_gene()
+
+        # generate inital population during start
+        self.generate_chromosomes(self.size)
+
         # weights on what to prioritize
         self.make_span_weight = make_span_weight
         self.cost_weight = cost_weight
@@ -92,64 +88,74 @@ class Population:
 
         self.hist = []
 
+    def generate_all_possible_gene(self):
+        """
+        generate all possible genes during initiation
+        """
+        j: Job
+        t: Team
+        for j in self.jobs:
+            for t in self.teams:
+                if j.job_type == t.job_focus:
+                    gene = Gene(j, t)
+                    self.all_possible_genes.append(gene)
+
     def generate_chromosomes(self, amount: int):
         """
         generate chromosomes based on the amount specified
         """
         for i in range(amount):
-            genes = []
-            j: Job
+            choosen_genes = []
             for j in self.jobs:
-                choosen_team = random.choice([t for t in self.teams if t.job_focus == j.job_type])
-                new_gene = Gene(j, choosen_team)
-                genes.append(new_gene)
+                gene = random.choice([g for g in self.all_possible_genes if g.job == j])
+                choosen_genes.append(gene)
+            
+            chromosome = Chromosome(choosen_genes)
+            self.chromosomes.append(chromosome)
 
-            new_chromosome = Chromosome(genes)
-            self.chromosomes.append(new_chromosome)
-        
-
-    def evaluate_chromosome(self):
+    def evaluate_chromosome(self, chromosome: Chromosome):
         """
         evaluates the fitness of the chromosome
         
         NOTE:  STRICLY FOR EVALUATING FITNESS
         """
-        c: Chromosome
-        for c in self.chromosomes:
-            # fitness in terms of make span
-            make_span = helper.calculate_make_span(c.genes, self.job_topo_order)
-            c.make_span = make_span
-            # fitness in terms of cost
-            cost = helper.calculate_cost(c.genes, self.teams)
-            c.cost = cost
-            
-            # penalty in terms of task distribution
-            load_penalty = helper.calculate_distribution_penalty(c.genes, self.jobs, self.teams)
-            c.load_balance = load_penalty
-            
-            risk_penalty = helper.calculate_risk_penalty(c.genes, self.teams)
-            c.risk_balance = risk_penalty
+        # fitness in terms of make span
+        make_span = helper.calculate_make_span(chromosome.genes, self.job_topo_order)
+        chromosome.make_span = make_span
+        # fitness in terms of cost
+        cost = helper.calculate_cost(chromosome.genes, self.teams)
+        chromosome.cost = cost
+        
+        # penalty in terms of task distribution
+        load_penalty = helper.calculate_distribution_penalty(chromosome.genes, self.jobs, self.teams)
+        chromosome.load_balance = load_penalty
+        
+        risk_penalty = helper.calculate_risk_penalty(chromosome.genes, self.teams)
+        chromosome.risk_balance = risk_penalty
 
-            parallel_penalty = helper.calculate_parallel_penalty(c.genes, self.teams, self.job_topo_order)
-            c.parallel = parallel_penalty
-            
-            c.fitness = self.make_span_weight * make_span + self.cost_weight * cost
-            c.fitness /= sum([self.make_span_weight, self.cost_weight])
-            
-            # adding penalty to final fitness because we minimizing the fitness
-            c.fitness += load_penalty + risk_penalty + parallel_penalty
+        parallel_penalty = helper.calculate_parallel_penalty(chromosome.genes, self.teams, self.job_topo_order)
+        chromosome.parallel = parallel_penalty
+        
+        chromosome.fitness = self.make_span_weight * make_span + self.cost_weight * cost
+        chromosome.fitness /= sum([self.make_span_weight, self.cost_weight])
+        
+        # adding penalty to final fitness because we minimizing the fitness
+        chromosome.fitness += load_penalty + risk_penalty + parallel_penalty
 
     def rank_select(self, amount: int) -> list:
         """
         rank based selection
         
-        sort the chromosome based on the rank and return the top percent chromosome specified
+        sort the chromosome based on the rank and return the top chromosome specified
         """        
         # sort the chromosome based on the fitness
+        # since lower fitness is better, sorting needs to be ascending
         self.chromosomes.sort(key=lambda x: x.fitness)
-        # selecting the top percent of chromosome
+        
+        # selecting the top chromosome
         winners = self.chromosomes[:amount]
         print(f"Selected {len(winners)} chromosome in rank selection")
+        
         return winners
 
     def tournament_select(self, amount: int) -> list:
@@ -159,9 +165,19 @@ class Population:
         return a list chromomsome that wins the tournament according to amount specified
         """
         winners = []
-        while len(winners) < amount and len(self.chromosomes) > 0:
+        for i in range(amount):
             competitor = random.sample(self.chromosomes, 2)
-            winner = competitor[0] if competitor[0].fitness < competitor[1].fitness else competitor[1]
+            winner = None
+            c1: Chromosome = competitor[0]
+            c2: Chromosome = competitor[1]
+
+            # when both chromosome is equally good, random select one of them
+            if c1.fitness == c2.fitness:
+                winner = random.choice(competitor)
+            # since the fitness is better when lower, winner is the one that have the lower fitness
+            else:
+                winner = c1 if c1.fitness < c2.fitness else c2
+            
             winners.append(winner)
             # remove the winner from the population so that it is not selected again
             self.chromosomes.remove(winner)
@@ -176,15 +192,17 @@ class Population:
         return a list of selected chromosome based on the amount specified
         """
         winners = []
-
-        while len(winners) < amount and len(self.chromosomes) > 0:
-            total_fitness = np.sum([c.fitness for c in self.chromosomes])
+        
+        for i in range(amount):
+            sum_of_fitness = sum([1/c.fitness for c in self.chromosomes])
             cumulative_fit = 0
             random_fit = random.random()
-            
+
+            c: Chromosome
             for c in self.chromosomes:
-                cumulative_fit += c.fitness / total_fitness
-                if random_fit <= cumulative_fit:
+                cumulative_fit += (1/c.fitness) / sum_of_fitness
+                assert round(cumulative_fit, 5) <= 1, cumulative_fit
+                if cumulative_fit >= random_fit:
                     winners.append(c)
                     self.chromosomes.remove(c)
                     break
@@ -203,39 +221,42 @@ class Population:
         bebes = []
         bebes_to_produce = self.size - len(self.chromosomes)
 
-        while len(bebes) < bebes_to_produce:
+        # choose two parent then let RNG god to decide whether or not to produce bebe
+        while bebes_to_produce > 0:
             parents = random.sample(self.chromosomes, 2)
-            for p1, p2 in [parents]:
-                if random.random() < self.cross_over_rate:
-                    bebe_1 = p1.cross_over(p2)
-                    bebe_2 = p2.cross_over(p1)
-                    bebes += [bebe_1, bebe_2]
+            if random.random() < self.cross_over_rate:
+                p1: Chromosome = parents[0]
+                p2: Chromosome = parents[1]
+                
+                bebe_1, bebe_2 = p1.cross_over(p2)
 
-        # mutate the genes in the bebe
+
+                bebes.append(bebe_1)
+                bebes.append(bebe_2)
+
+                bebes_to_produce -= 2
+
+        # after the bebes is produced, do random mutations
         b: Chromosome
         for b in bebes:
-            g: Gene
-            for g in b.genes:
+            for i in range(len(b.genes)):
                 if random.random() < self.mutation_rate:
-                    g.team = random.choice([t for t in self.teams if t.job_focus == g.job.job_type])
-
+                    mutated_gene = [g for g in self.all_possible_genes if g != b.genes[i] and g.job == b.genes[i].job]
+                    choosen_mutation = random.choice(mutated_gene)
+                    b.genes[i] = choosen_mutation
+        
         self.chromosomes += bebes
-
-        # check if the population is less than the population size stated
-        # else sample the population size needed only
-        if len(self.chromosomes) > self.size:
-            self.chromosomes = random.sample(self.chromosomes, self.size)
+        print(f"Produced {len(bebes)} bebes in generation {self.generation}")
 
 def run() -> Chromosome:
     jobs = config.jobs
     teams = config.teams
     population = Population(jobs, teams, 400, cross_over_rate=0.98, mutation_rate=0.1)
-    population.generate_chromosomes(population.size)
     
     while population.generation <= 400:
-        print(f"Generation {population.generation} | population: {len(population.chromosomes)}")
-        population.evaluate_chromosome()
-        
+        for c in population.chromosomes:
+            population.evaluate_chromosome(c)
+
         current_best = min(population.chromosomes, key=lambda x: x.fitness)
         if population.generation == 1:
             population.best = current_best
@@ -245,18 +266,20 @@ def run() -> Chromosome:
                 population.best = current_best     
                 population.best.selected = population.generation         
                 print(f"New best found! | {current_best.genes}")
-
+        
         history = (
             np.mean([c.fitness for c in population.chromosomes]),
             population.best.fitness
         )
         population.hist.append(history)
         
+        # eliminating chromosome
         population.chromosomes = population.rank_select(250)
+        # produce the next generatin
         population.produce_bebe()
-        
-        population.generation += 1
 
+        population.generation += 1
+    
     fig, ax1 = plt.subplots()
     ax1.plot([h[0] for h in population.hist], color="g", label="Average fitness")
     ax1.plot([h[1] for h in population.hist], color="b", label="Best fitness")
