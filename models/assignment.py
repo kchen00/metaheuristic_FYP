@@ -15,8 +15,6 @@ class Assignment:
         self.make_span = 0
         # how much cost is needed to complete this job
         self.cost = 0
-        # whether this assignemnt is active or not
-        self.active = False
 
         self.calculate_make_span()
         self.calculate_cost()
