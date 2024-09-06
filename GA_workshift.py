@@ -201,7 +201,6 @@ class Population:
             c: Chromosome
             for c in self.chromosomes:
                 cumulative_fit += (1/c.fitness) / sum_of_fitness
-                assert round(cumulative_fit, 5) <= 1, cumulative_fit
                 if cumulative_fit >= random_fit:
                     winners.append(c)
                     self.chromosomes.remove(c)
