@@ -6,6 +6,7 @@ import random
 import numpy as np
 from matplotlib import pyplot as plt
 import config
+from math import ceil
 
 class State(Assignment):
     def __init__(self, j: Job, t: Team):
@@ -31,12 +32,13 @@ class Anneal:
     """
     represent the simulated annealing process
     """
-    def __init__(self, jobs: list, teams: list, cooling_rate: float = 0.95, temperature: float = 1, make_span_weight: float = 0.5, cost_weight: float = 0.5) -> None:
+    def __init__(self, jobs: list, teams: list, max_iteration: int, cooling_rate: float = 0.95, temperature: float = 1, make_span_weight: float = 0.5, cost_weight: float = 0.5) -> None:
         self.jobs = jobs
         self.teams = teams
         self.job_topo_order = helper.kahn_sort(self.jobs)
-
+        
         self.iteration = 1
+        self.max_iteration = max_iteration
         self.cooling_rate = cooling_rate
         self.temperature = temperature
 
@@ -92,30 +94,47 @@ class Anneal:
         
         candidate.fitness += load_penalty + risk_penalty + parallel_penalty
 
-    def create_neighbour_solution(self, amount: int, change_prob: float, max_changes: int = None) -> Solution:
+    def create_neighbour_solution(self, amount: int, max_changes: int = None, random_changes: bool = True) -> Solution:
         """
         based on the current solution create a neighbour solution by randomly assign new team to the job
-
-        the amount of changes depends on the change_prob
         
         total changes can be limited by setting max_changes
+
+        if max_changes is not set, the max_changes is calculated automatically
+
+        enable random_changes will make changes randomly according to max_changes
         """
         
         neighbours = []
-        for i in range(amount):
-            limit = max_changes if max_changes else len(self.jobs)
-            state = []
 
+        # setting the max changes that can be perform
+        limit = max_changes
+        # calculate the limit if not specified
+        if not(limit):
+            limit = (-len(self.jobs) / self.max_iteration) * self.iteration + len(self.jobs)
+            limit = ceil(limit)
+
+        change_prob = np.exp(-self.iteration/self.temperature)
+        
+        for i in range(amount):
+            state = []
             s: State
+            # copy the team and job as a new state
             for s in self.current.state:
-                new_state = State(s.job, s.team)
-                if random.random() < change_prob and limit > 0 :
-                    selected_team = random.choice([t for t in self.teams if t.job_focus == s.job.job_type])
-                    new_state.team = selected_team
-                    limit -= 1
-                                    
+                new_state = State(s.job, s.team)                                  
                 state.append(new_state)
-                        
+            
+            # select the max_changes amount of state for changes
+            selected_state = random.sample(state, k=limit)
+            for s in selected_state:
+                if random_changes:
+                    if random.random() < change_prob:
+                        new_team = random.choice([t for t in self.teams if t.job_focus == s.job.job_type])
+                        s.team = new_team
+                else:
+                    new_team = random.choice([t for t in self.teams if t.job_focus == s.job.job_type])
+                    s.team = new_team
+
             neighbour = Solution(state)
             neighbours.append(neighbour)
         
@@ -152,13 +171,13 @@ def run() -> Solution:
     jobs = config.jobs
     teams = config.teams
 
-    anneal = Anneal(jobs, teams, cooling_rate=0.99, temperature=1000)
+    anneal = Anneal(jobs, teams, 800, cooling_rate=0.99, temperature=8000)
     anneal.current = anneal.create_initial_solution()
     anneal.evaluate_candidate(anneal.current)
     
-    while anneal.iteration <= 800:
+    while anneal.iteration <= anneal.max_iteration:
         print(f"iteration {anneal.iteration} | temp: {anneal.temperature}")
-        anneal.neighbours = anneal.create_neighbour_solution(10, np.exp(-anneal.iteration/anneal.temperature), 1)
+        anneal.neighbours = anneal.create_neighbour_solution(50)
         for n in anneal.neighbours:
             anneal.evaluate_candidate(n)
         anneal.decide_solution()
@@ -176,7 +195,7 @@ def run() -> Solution:
         history = (
             np.mean([n.fitness for n in anneal.neighbours]),
             anneal.best.fitness,
-            anneal.temperature
+            anneal.temperature,
         )
         anneal.hist.append(history)
 
