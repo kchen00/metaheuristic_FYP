@@ -94,7 +94,7 @@ class Anneal:
         
         candidate.fitness += load_penalty + risk_penalty + parallel_penalty
 
-    def create_neighbour_solution(self, amount: int, max_changes: int = None, random_changes: bool = True) -> Solution:
+    def create_neighbour_solution(self, amount: int, max_changes: int = None, random_changes: bool = False) -> Solution:
         """
         based on the current solution create a neighbour solution by randomly assign new team to the job
         
