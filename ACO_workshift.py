@@ -116,9 +116,11 @@ class AntColony:
         
         ant.fitness += load_penalty + risk_penalty + parallel_penalty
     
-    def update_pheromone(self) -> None:
+    def update_pheromone(self, top: int = 0) -> None:
         """
         updates the pheromone
+
+        set top to enable rank update, only the to ants are choosen to update the pheromone
         """
         # evaporates the pheromone
         p: Path
@@ -126,8 +128,14 @@ class AntColony:
             p.pheromone *= self.p_left
         
         # ants leaving pheromone
-        for a in self.ants:
-            a.leave_pheromone()
+        if top > 0:
+            self.ants.sort(key=lambda x: x.fitness)
+            for a in self.ants[:top]:
+                a.leave_pheromone()
+        else:
+            for a in self.ants:
+                a.leave_pheromone()
+
         
 
 def run() -> Ant:
