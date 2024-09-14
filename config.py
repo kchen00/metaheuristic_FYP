@@ -3,11 +3,13 @@ config contains the jobs and teams
 """
 
 from models.job import Job, JOB_TYPE
-from models.team import Team
-from helpers.helper import kahn_sort
+from models.employee import Employee
+from models.assignment import Assignment
 import random
 
-random.seed(1)
+# setting the seed manually, for debugging purpose
+seed = 1
+random.seed(seed)
 
 cost_weights = [1, 6, 1]
 make_span_weights = [1, 6, 1]
@@ -71,22 +73,22 @@ jobs = [
     job_25
 ]
 
-teams = [
-    Team("XGWGK", 1, 0.80, 0.83, JOB_TYPE.PLANNING),
-    Team("WLLXJ", 2, 0.84, 0.86, JOB_TYPE.PLANNING),
-    Team("GSHJX", 3, 0.80, 0.89, JOB_TYPE.PLANNING),
-    Team("GTCSM", 6, 0.81, 0.86, JOB_TYPE.ANALYSIS),
-    Team("YNTVI", 7, 0.92, 0.82, JOB_TYPE.ANALYSIS),
-    Team("TVFKY", 8, 0.88, 0.96, JOB_TYPE.ANALYSIS),
-    Team("TJXNS", 11, 0.88, 0.83, JOB_TYPE.DESIGN),
-    Team("YGQXC", 12, 0.84, 0.93, JOB_TYPE.DESIGN),
-    Team("JDDQZ", 13, 0.86, 0.87, JOB_TYPE.DESIGN),
-    Team("TFFUA", 16, 0.74, 0.85, JOB_TYPE.IMPLEMENTATION),
-    Team("JBCDP", 17, 0.96, 0.81, JOB_TYPE.IMPLEMENTATION),
-    Team("ZFMUR", 18, 0.92, 0.89, JOB_TYPE.IMPLEMENTATION),
-    Team("OWTEW", 21, 0.87, 0.83, JOB_TYPE.MAINTAINENCE),
-    Team("NERGG", 22, 0.85, 0.77, JOB_TYPE.MAINTAINENCE),
-    Team("FJQHF", 23, 0.95, 0.82, JOB_TYPE.MAINTAINENCE),
+employees = [
+    Employee("XGWGK", 1, 0.80, 0.83, JOB_TYPE.PLANNING),
+    Employee("WLLXJ", 2, 0.84, 0.86, JOB_TYPE.PLANNING),
+    Employee("GSHJX", 3, 0.80, 0.89, JOB_TYPE.PLANNING),
+    Employee("GTCSM", 6, 0.81, 0.86, JOB_TYPE.ANALYSIS),
+    Employee("YNTVI", 7, 0.92, 0.82, JOB_TYPE.ANALYSIS),
+    Employee("TVFKY", 8, 0.88, 0.96, JOB_TYPE.ANALYSIS),
+    Employee("TJXNS", 11, 0.88, 0.83, JOB_TYPE.DESIGN),
+    Employee("YGQXC", 12, 0.84, 0.93, JOB_TYPE.DESIGN),
+    Employee("JDDQZ", 13, 0.86, 0.87, JOB_TYPE.DESIGN),
+    Employee("TFFUA", 16, 0.74, 0.85, JOB_TYPE.IMPLEMENTATION),
+    Employee("JBCDP", 17, 0.96, 0.81, JOB_TYPE.IMPLEMENTATION),
+    Employee("ZFMUR", 18, 0.92, 0.89, JOB_TYPE.IMPLEMENTATION),
+    Employee("OWTEW", 21, 0.87, 0.83, JOB_TYPE.MAINTAINENCE),
+    Employee("NERGG", 22, 0.85, 0.77, JOB_TYPE.MAINTAINENCE),
+    Employee("FJQHF", 23, 0.95, 0.82, JOB_TYPE.MAINTAINENCE),
 ]
 
 # building job dependency
@@ -120,6 +122,3 @@ dependencies = [
 j: Job
 for j, d in dependencies:
     j.depends_on(d)
-
-# topo_order = kahn_sort(jobs)
-# print(topo_order)

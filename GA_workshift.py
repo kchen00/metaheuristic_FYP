@@ -1,6 +1,6 @@
 from models.assignment import Assignment
 from models.job import Job
-from models.team import Team
+from models.employee import Employee
 from helpers import helper
 import random
 import numpy as np
@@ -8,8 +8,8 @@ from matplotlib import pyplot as plt
 import config
 
 class Gene(Assignment):
-    def __init__(self, j: Job, t: Team) -> None:
-        super().__init__(j, t)
+    def __init__(self, j: Job, e: Employee) -> None:
+        super().__init__(j, e)
 
 class Chromosome:
     def __init__(self, genes: list) -> None:
@@ -52,7 +52,7 @@ class Chromosome:
         return b1, b2
 
 class Population:
-    def __init__(self, jobs: list, teams: list, size: int, cross_over_rate: float = 0.95, mutation_rate: float = 0.1, make_span_weight: float = 0.5, cost_weight: float = 0.5):
+    def __init__(self, jobs: list, employees: list, size: int, cross_over_rate: float = 0.95, mutation_rate: float = 0.1, make_span_weight: float = 0.5, cost_weight: float = 0.5):
         """
         represent a population of chromosome
         
@@ -64,7 +64,7 @@ class Population:
 
         # list of teams and jobs
         self.jobs = jobs
-        self.teams = teams
+        self.employees = employees
         self.job_topo_order = helper.kahn_sort(self.jobs)
         
         # gnerate all possible genes during start
@@ -93,11 +93,11 @@ class Population:
         generate all possible genes during initiation
         """
         j: Job
-        t: Team
+        e: Employee
         for j in self.jobs:
-            for t in self.teams:
-                if j.job_type == t.job_focus:
-                    gene = Gene(j, t)
+            for e in self.employees:
+                if j.job_type == e.job_focus:
+                    gene = Gene(j, e)
                     self.all_possible_genes.append(gene)
 
     def generate_chromosomes(self, amount: int):
@@ -123,17 +123,17 @@ class Population:
         make_span = helper.calculate_make_span(chromosome.genes, self.job_topo_order)
         chromosome.make_span = make_span
         # fitness in terms of cost
-        cost = helper.calculate_cost(chromosome.genes, self.teams)
+        cost = helper.calculate_cost(chromosome.genes, self.employees)
         chromosome.cost = cost
         
         # penalty in terms of task distribution
-        load_penalty = helper.calculate_distribution_penalty(chromosome.genes, self.jobs, self.teams)
+        load_penalty = helper.calculate_distribution_penalty(chromosome.genes, self.jobs, self.employees)
         chromosome.load_balance = load_penalty
         
-        risk_penalty = helper.calculate_risk_penalty(chromosome.genes, self.teams)
+        risk_penalty = helper.calculate_risk_penalty(chromosome.genes, self.employees)
         chromosome.risk_balance = risk_penalty
 
-        parallel_penalty = helper.calculate_parallel_penalty(chromosome.genes, self.teams, self.job_topo_order)
+        parallel_penalty = helper.calculate_parallel_penalty(chromosome.genes, self.employees, self.job_topo_order)
         chromosome.parallel = parallel_penalty
         
         chromosome.fitness = self.make_span_weight * make_span + self.cost_weight * cost
@@ -249,8 +249,8 @@ class Population:
 
 def run() -> Chromosome:
     jobs = config.jobs
-    teams = config.teams
-    population = Population(jobs, teams, 400, cross_over_rate=0.98, mutation_rate=0.1)
+    employees = config.employees
+    population = Population(jobs, employees, 400, cross_over_rate=0.98, mutation_rate=0.1)
     
     while population.generation <= 400:
         for c in population.chromosomes:
@@ -288,9 +288,10 @@ def run() -> Chromosome:
     return population.best
 
 solution = run()
-helper.print_schedule(solution.genes)
+helper.print_formation(solution.genes)
 print(f"Solution job balance: {solution.load_balance}")
 print(f"Solution risk balance: {solution.risk_balance}")
 print(f"Solution parallel balance: {solution.parallel}")
 print(f"Solution is selected at generation {solution.selected}")
 print(f"Solution string {solution.genes}")
+print(f"Seed: {config.seed}")

@@ -1,6 +1,6 @@
 from helpers import helper
 from models.job import Job
-from models.team import Team
+from models.employee import Employee
 from models.assignment import Assignment
 import random
 import numpy as np
@@ -9,8 +9,8 @@ import config
 from math import ceil
 
 class State(Assignment):
-    def __init__(self, j: Job, t: Team):
-        super().__init__(j, t)
+    def __init__(self, j: Job, e: Employee):
+        super().__init__(j, e)
 
 class Solution:
     """
@@ -32,9 +32,9 @@ class Anneal:
     """
     represent the simulated annealing process
     """
-    def __init__(self, jobs: list, teams: list, max_iteration: int, cooling_rate: float = 0.95, temperature: float = 1, make_span_weight: float = 0.5, cost_weight: float = 0.5) -> None:
+    def __init__(self, jobs: list, employees: list, max_iteration: int, cooling_rate: float = 0.95, temperature: float = 1, make_span_weight: float = 0.5, cost_weight: float = 0.5) -> None:
         self.jobs = jobs
-        self.teams = teams
+        self.employees = employees
         self.job_topo_order = helper.kahn_sort(self.jobs)
         
         self.iteration = 1
@@ -62,7 +62,7 @@ class Anneal:
 
         for j in self.jobs:
             # assign random team to the job
-            selected_team = random.choice([t for t in self.teams if t.job_focus == j.job_type])
+            selected_team = random.choice([e for e in self.employees if e.job_focus == j.job_type])
             new_state = State(j, selected_team)
             state.append(new_state)
         
@@ -77,16 +77,16 @@ class Anneal:
         make_span = helper.calculate_make_span(candidate.state, self.job_topo_order)
         candidate.make_span = make_span
         
-        cost = helper.calculate_cost(candidate.state, self.teams)
+        cost = helper.calculate_cost(candidate.state, self.employees)
         candidate.cost = cost
 
-        load_penalty = helper.calculate_distribution_penalty(candidate.state, self.jobs, self.teams)
+        load_penalty = helper.calculate_distribution_penalty(candidate.state, self.jobs, self.employees)
         candidate.load_balance = load_penalty
 
-        risk_penalty = helper.calculate_risk_penalty(candidate.state, self.teams)
+        risk_penalty = helper.calculate_risk_penalty(candidate.state, self.employees)
         candidate.risk_balance = risk_penalty
 
-        parallel_penalty = helper.calculate_parallel_penalty(candidate.state, self.teams, self.job_topo_order)
+        parallel_penalty = helper.calculate_parallel_penalty(candidate.state, self.employees, self.job_topo_order)
         candidate.parallel = parallel_penalty
 
         candidate.fitness = self.make_span_weight * make_span + self.cost_weight * cost
@@ -121,7 +121,7 @@ class Anneal:
             s: State
             # copy the team and job as a new state
             for s in self.current.state:
-                new_state = State(s.job, s.team)                                  
+                new_state = State(s.job, s.employee)                                  
                 state.append(new_state)
             
             # select the max_changes amount of state for changes
@@ -129,11 +129,11 @@ class Anneal:
             for s in selected_state:
                 if random_changes:
                     if random.random() < change_prob:
-                        new_team = random.choice([t for t in self.teams if t.job_focus == s.job.job_type])
-                        s.team = new_team
+                        new_team = random.choice([e for e in self.employees if e.job_focus == s.job.job_type])
+                        s.employee = new_team
                 else:
-                    new_team = random.choice([t for t in self.teams if t.job_focus == s.job.job_type])
-                    s.team = new_team
+                    new_team = random.choice([e for e in self.employees if e.job_focus == s.job.job_type])
+                    s.employee = new_team
 
             neighbour = Solution(state)
             neighbours.append(neighbour)
@@ -169,9 +169,9 @@ class Anneal:
 
 def run() -> Solution:
     jobs = config.jobs
-    teams = config.teams
+    employees = config.employees
 
-    anneal = Anneal(jobs, teams, 800, cooling_rate=0.99, temperature=8000)
+    anneal = Anneal(jobs, employees, 800, cooling_rate=0.99, temperature=8000)
     anneal.current = anneal.create_initial_solution()
     anneal.evaluate_candidate(anneal.current)
     
@@ -213,9 +213,10 @@ def run() -> Solution:
     return anneal.best
 
 solution = run()
-helper.print_schedule(solution.state)
+helper.print_formation(solution.state)
 print(f"Solution job balance: {solution.load_balance}")
 print(f"Solution risk balance: {solution.risk_balance}")
 print(f"Solution parallel balance: {solution.parallel}")
 print(f"Solution is selected at iteration {solution.selected}")
 print(f"Solution string: {solution.state}")
+print(f"Seed: {config.seed}")

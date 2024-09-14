@@ -1,6 +1,6 @@
 from models.assignment import Assignment
 from models.job import Job
-from models.team import Team
+from models.employee import Employee
 from helpers import helper
 import random
 import numpy as np
@@ -13,8 +13,8 @@ class Path(Assignment):
 
     path is initialized with high pheromone to encourage exploration
     """
-    def __init__(self, j: Job, t: Team) -> None:
-        super().__init__(j, t)
+    def __init__(self, j: Job, e: Employee) -> None:
+        super().__init__(j, e)
         self.pheromone = 1
 
 class Ant:
@@ -58,9 +58,9 @@ class Ant:
             p.pheromone += pheromone
 
 class AntColony:
-    def __init__(self, population: int, evaporate: float, jobs: list, teams: list, make_span_weight: float = 0.5, cost_weight: float = 0.5) -> None:
+    def __init__(self, population: int, evaporate: float, jobs: list, employees: list, make_span_weight: float = 0.5, cost_weight: float = 0.5) -> None:
         self.jobs= jobs
-        self.teams = teams
+        self.employees = employees
         self.job_topo_order = helper.kahn_sort(self.jobs)
 
         self.iteration = 1
@@ -87,9 +87,9 @@ class AntColony:
         initialize the job team matrix
         """
         for j in self.jobs:
-            for t in self.teams:
-                if j.job_type == t.job_focus:
-                    path = Path(j, t)
+            for e in self.employees:
+                if j.job_type == e.job_focus:
+                    path = Path(j, e)
                     self.paths.append(path)
 
     def evaluate_ant(self, ant: Ant) -> None:
@@ -99,16 +99,16 @@ class AntColony:
         make_span = helper.calculate_make_span(ant.path_taken, self.job_topo_order)
         ant.make_span = make_span
         
-        cost = helper.calculate_cost(ant.path_taken, self.teams)
+        cost = helper.calculate_cost(ant.path_taken, self.employees)
         ant.cost = cost
 
-        load_penalty = helper.calculate_distribution_penalty(ant.path_taken, self.jobs, self.teams)
+        load_penalty = helper.calculate_distribution_penalty(ant.path_taken, self.jobs, self.employees)
         ant.load_balance = load_penalty
 
-        risk_penalty = helper.calculate_risk_penalty(ant.path_taken, self.teams)
+        risk_penalty = helper.calculate_risk_penalty(ant.path_taken, self.employees)
         ant.risk_balance = risk_penalty
 
-        parallel_penalty = helper.calculate_parallel_penalty(ant.path_taken, self.teams, self.job_topo_order)
+        parallel_penalty = helper.calculate_parallel_penalty(ant.path_taken, self.employees, self.job_topo_order)
         ant.parallel = parallel_penalty
 
         ant.fitness = self.make_span_weight * make_span + self.cost_weight * cost
@@ -120,7 +120,7 @@ class AntColony:
         """
         updates the pheromone
 
-        set top to enable rank update, only the to ants are choosen to update the pheromone
+        set top to enable rank update, only the top ranking ants are choosen to update the pheromone
         """
         # evaporates the pheromone
         p: Path
@@ -139,7 +139,7 @@ class AntColony:
         
 
 def run() -> Ant:
-    ant_colony = AntColony(10, 0.1, config.jobs, config.teams)
+    ant_colony = AntColony(10, 0.1, config.jobs, config.employees)
 
     while ant_colony.iteration <= 800:
         print(f"Iteration {ant_colony.iteration}")
@@ -186,10 +186,10 @@ def run() -> Ant:
     return ant_colony.best
 
 solution = run()
-helper.print_schedule(solution.path_taken)
+helper.print_formation(solution.path_taken)
 print(f"Solution job balance: {solution.load_balance}")
 print(f"Solution risk balance: {solution.risk_balance}")
 print(f"Solution parallel balance: {solution.parallel}")
 print(f"Solution is selected at iteration {solution.selected}")
 print(f"Solution string: {solution.path_taken}")
-
+print(f"Seed: {config.seed}")

@@ -85,10 +85,7 @@ def kahn_sort(jobs: list) -> list:
 
 def calculate_make_span(schedule: list, topo_order: list) -> tuple:
     """
-    given the schedule, return the team with highest make span and the make span
-    
-    Returns:
-        (Team, make_span)
+    given the schedule, return the make span
     """
     total_make_span = 0
 
@@ -98,111 +95,111 @@ def calculate_make_span(schedule: list, topo_order: list) -> tuple:
     
     return total_make_span
 
-def calculate_cost(schedule: list, teams: list):
+def calculate_cost(formation: list, employees: list):
     """
-    given the schedule, calculate the total cost
-    
-    Returns:
-        (Team, cost)
+    given the formation, calculate the total cost
     """
     total_cost = 0
-    for t in teams:
-        cost = sum([s.cost for s in schedule if s.team == t])
+    for e in employees:
+        cost = sum([f.cost for f in formation if f.employee == e])
         total_cost += cost
     
     return total_cost
 
-def calculate_distribution_penalty(schedule: list, jobs: list, teams: list) -> float:
+def calculate_distribution_penalty(formation: list, jobs: list, employees: list) -> float:
     """
     calculates the penalty of task distribution
     """
     number_of_jobs = len(jobs)
-    number_of_teams = len(teams)
-    avg_job_per_team = number_of_jobs / number_of_teams
+    number_of_employees = len(employees)
+    avg_job_per_person = number_of_jobs / number_of_employees
     
     mean_diff_squared = 0
-    for t in teams:
+    for e in employees:
         # j is the number of jobs assinged to the team
-        j = len(set([s.job for s in schedule if s.team == t]))
-        diff = j - avg_job_per_team
+        j = len(set([f.job for f in formation if f.employee == e]))
+        diff = j - avg_job_per_person
         diff_squared = diff ** 2
-        mean_diff_squared += diff_squared / number_of_teams
+        mean_diff_squared += diff_squared / number_of_employees
     
     return mean_diff_squared
 
-def calculate_risk_penalty(schedule: list, teams: list) -> float:
+def calculate_risk_penalty(formation: list, employees: list) -> float:
     """
     calculate the risk of the schedule based on the job and team distribution
     """
-    sum_of_job_risk = sum([s.job.risk for s in schedule])
-    mean_of_risk = sum_of_job_risk / len(teams)
+    sum_of_job_risk = sum([f.job.risk for f in formation])
+    mean_of_risk = sum_of_job_risk / len(employees)
 
     mean_diff_squared = 0
-    for t in teams:
-        team_job_risk = sum([s.job.risk for s in schedule if s.team == t])
+    for e in employees:
+        team_job_risk = sum([f.job.risk for f in formation if f.employee == e])
         diff = team_job_risk - mean_of_risk
         diff_squared = diff ** 2
         mean_diff_squared += diff_squared
     
     return mean_diff_squared
 
-def calculate_parallel_penalty(schedule: list, teams: list, topo_order: list) -> float:
+def calculate_parallel_penalty(formation: list, employees: list, topo_order: list) -> float:
     """
-    calculate the penalty of job and team assigment based on the parallel distribution of the jobs
+    calculate the penalty of job and employee assigment based on the parallel distribution of the jobs
     """
     penalty = 0.0
-    for t in teams:
-        job = {s.job for s in schedule if s.team == t}
+    for e in employees:
+        job = {f.job for f in formation if f.employee == e}
         # only check when the team is assigned with multiple jobs
         if len(job) > 1:
             for o in topo_order:
+                # if the job assigned to the employee is the subset of one of kahn sort set
+                # and the number of jobs is more than 1 (no penalty if employee is only given 1 job)
+                # then there is penalty
                 if job <= o and len(o) > 1:
                     penalty += len(job) ** 2
 
     return penalty
 
-def find_longest_make_span(schedule: list, teams: list):
+def find_longest_make_span(formation: list, employees: list):
     """
-    find the team with the longest make span and its make span
+    find the employee with the longest make span and its make span
     """
-    team_make_span = dict()
-    for t in teams:
-        total_make_span = sum([s.make_span for s in schedule if s.team == t])
-        team_make_span[t] = total_make_span
+    employee_make_span = dict()
+    for e in employees:
+        total_make_span = sum([f.make_span for f in formation if f.employee == e])
+        employee_make_span[e] = total_make_span
     
-    max_team = max(team_make_span, key=team_make_span.get)
+    max_team = max(employee_make_span, key=employee_make_span.get)
     
-    return max_team, team_make_span[max_team] 
+    return max_team, employee_make_span[max_team] 
 
-def find_expensive_cost(schedule: list, teams: list):
+def find_expensive_cost(formation: list, employees: list):
     """
     find the team with the most expensive cost and its cost
     """
-    team_cost = dict()
-    for t in teams:
-        total_make_span = sum([s.cost for s in schedule if s.team == t])
-        team_cost[t] = total_make_span
+    employee_cost = dict()
+    for e in employees:
+        total_cost = sum([f.cost for f in formation if f.employee == e])
+        employee_cost[e] = total_cost
     
-    max_team = max(team_cost, key=team_cost.get)
+    max_employee = max(employee_cost, key=employee_cost.get)
     
-    return max_team, team_cost[max_team] 
+    return max_employee, employee_cost[max_employee] 
 
-def print_schedule(schedule: list):
-    teams = list({s.team for s in schedule})
-    jobs = list({s.job for s in schedule})
+def print_formation(formation: list):
+    teams = list({f.employee for f in formation})
+    jobs = list({f.job for f in formation})
     topo_order = kahn_sort(jobs)
     
-    make_span = calculate_make_span(schedule, topo_order)
-    cost = calculate_cost(schedule, teams)
+    make_span = calculate_make_span(formation, topo_order)
+    cost = calculate_cost(formation, teams)
 
-    longest_team, longest_make_span = find_longest_make_span(schedule, teams)
-    expensive_team, expensive_cost = find_expensive_cost(schedule, teams)
+    longest_employee, longest_make_span = find_longest_make_span(formation, teams)
+    expensive_employee, expensive_cost = find_expensive_cost(formation, teams)
 
     print("==================================================================")
     print(f"Total Make span: {make_span:.2f} days")
     print(f"Total Cost: $ {cost:.2f} k")
-    print(f"Team {longest_team.name} has the highest make span ({longest_make_span:.2f} days)")
-    print(f"Team {expensive_team.name} has the highest cost ($ {expensive_cost:.1f}k)")
+    print(f"Employee {longest_employee.name} has the highest make span ({longest_make_span:.2f} days)")
+    print(f"Employee {expensive_employee.name} has the highest cost ($ {expensive_cost:.1f}k)")
 
     current_phase = JOB_TYPE.PLANNING
     print_phase = True
@@ -219,9 +216,9 @@ def print_schedule(schedule: list):
                 print("---------------------------------------")
                 print_phase = False
             
-            for s in schedule:
-                if s.job == j:
-                    print(f"{s.team.name} | {s.make_span:.2f} days | $ {s.cost:.1f}k | {j.name}")
+            for f in formation:
+                if f.job == j:
+                    print(f"{f.employee.name} | {f.make_span:.2f} days | $ {f.cost:.1f}k | {j.name}")
                     break
         
         print("---------------------------------------")
