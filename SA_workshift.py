@@ -32,7 +32,7 @@ class Anneal:
     """
     represent the simulated annealing process
     """
-    def __init__(self, jobs: list, employees: list, max_iteration: int, cooling_rate: float = 0.95, temperature: float = 1, make_span_weight: float = 0.5, cost_weight: float = 0.5) -> None:
+    def __init__(self, jobs: list, employees: list, max_iteration: int, cooling_rate: float = 0.95, temperature: float = 1) -> None:
         self.jobs = jobs
         self.employees = employees
         self.job_topo_order = helper.kahn_sort(self.jobs)
@@ -41,9 +41,6 @@ class Anneal:
         self.max_iteration = max_iteration
         self.cooling_rate = cooling_rate
         self.temperature = temperature
-
-        self.make_span_weight = make_span_weight
-        self.cost_weight = cost_weight
         
         # the current candidate that is being evaluated
         self.current = None
@@ -76,9 +73,11 @@ class Anneal:
         # fitness in terms of make span
         make_span = helper.calculate_make_span(candidate.state, self.job_topo_order)
         candidate.make_span = make_span
+        make_span *= config.make_span_op
         
         cost = helper.calculate_cost(candidate.state, self.employees)
         candidate.cost = cost
+        cost *= config.cost_op
 
         load_penalty = helper.calculate_distribution_penalty(candidate.state, self.jobs, self.employees)
         candidate.load_balance = load_penalty
@@ -89,9 +88,7 @@ class Anneal:
         parallel_penalty = helper.calculate_parallel_penalty(candidate.state, self.employees, self.job_topo_order)
         candidate.parallel = parallel_penalty
 
-        candidate.fitness = self.make_span_weight * make_span + self.cost_weight * cost
-        candidate.fitness /= sum([self.make_span_weight, self.cost_weight])
-        
+        candidate.fitness = (make_span + cost) / config.total_weights_op
         candidate.fitness += load_penalty + risk_penalty + parallel_penalty
 
     def create_neighbour_solution(self, amount: int, max_changes: int = None, random_changes: bool = False) -> Solution:

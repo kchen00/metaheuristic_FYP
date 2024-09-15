@@ -11,8 +11,15 @@ import random
 seed = 1
 random.seed(seed)
 
+# weights for estimations
 cost_weights = [1, 6, 1]
 make_span_weights = [1, 6, 1]
+
+# weights on what to prioritize during optimization
+make_span_op = 0.5 
+cost_op = 0.5
+
+total_weights_op = make_span_op + cost_op
 
 # planning jobs
 job_1 = Job("Define Project Scope", 1, JOB_TYPE.PLANNING, [2, 5, 10], [1.0, 5.0, 5.5], 0.7, make_span_weights, cost_weights)

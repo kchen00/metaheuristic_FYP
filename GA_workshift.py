@@ -52,7 +52,7 @@ class Chromosome:
         return b1, b2
 
 class Population:
-    def __init__(self, jobs: list, employees: list, size: int, cross_over_rate: float = 0.95, mutation_rate: float = 0.1, make_span_weight: float = 0.5, cost_weight: float = 0.5):
+    def __init__(self, jobs: list, employees: list, size: int, cross_over_rate: float = 0.95, mutation_rate: float = 0.1):
         """
         represent a population of chromosome
         
@@ -74,15 +74,9 @@ class Population:
         # generate inital population during start
         self.generate_chromosomes(self.size)
 
-        # weights on what to prioritize
-        self.make_span_weight = make_span_weight
-        self.cost_weight = cost_weight
-
         self.cross_over_rate = cross_over_rate
         self.mutation_rate = mutation_rate
 
-        self.previous_high = 0
-        self.previous_low = 0
         # storing the best solution
         self.best = None
 
@@ -122,9 +116,12 @@ class Population:
         # fitness in terms of make span
         make_span = helper.calculate_make_span(chromosome.genes, self.job_topo_order)
         chromosome.make_span = make_span
+        make_span *= config.make_span_op
+        
         # fitness in terms of cost
         cost = helper.calculate_cost(chromosome.genes, self.employees)
         chromosome.cost = cost
+        cost *= config.cost_op
         
         # penalty in terms of task distribution
         load_penalty = helper.calculate_distribution_penalty(chromosome.genes, self.jobs, self.employees)
@@ -136,9 +133,7 @@ class Population:
         parallel_penalty = helper.calculate_parallel_penalty(chromosome.genes, self.employees, self.job_topo_order)
         chromosome.parallel = parallel_penalty
         
-        chromosome.fitness = self.make_span_weight * make_span + self.cost_weight * cost
-        chromosome.fitness /= sum([self.make_span_weight, self.cost_weight])
-        
+        chromosome.fitness = (make_span + cost) / config.total_weights_op
         # adding penalty to final fitness because we minimizing the fitness
         chromosome.fitness += load_penalty + risk_penalty + parallel_penalty
 

@@ -58,16 +58,13 @@ class Ant:
             p.pheromone += pheromone
 
 class AntColony:
-    def __init__(self, population: int, evaporate: float, jobs: list, employees: list, make_span_weight: float = 0.5, cost_weight: float = 0.5) -> None:
+    def __init__(self, population: int, evaporate: float, jobs: list, employees: list) -> None:
         self.jobs= jobs
         self.employees = employees
         self.job_topo_order = helper.kahn_sort(self.jobs)
 
         self.iteration = 1
         
-        self.make_span_weight = make_span_weight
-        self.cost_weight = cost_weight
-
         # the amount pheromone left after each iteration
         self.p_left = 1 - evaporate
 
@@ -98,9 +95,11 @@ class AntColony:
         """
         make_span = helper.calculate_make_span(ant.path_taken, self.job_topo_order)
         ant.make_span = make_span
+        make_span *= config.make_span_op
         
         cost = helper.calculate_cost(ant.path_taken, self.employees)
         ant.cost = cost
+        cost *= config.cost_op
 
         load_penalty = helper.calculate_distribution_penalty(ant.path_taken, self.jobs, self.employees)
         ant.load_balance = load_penalty
@@ -111,9 +110,7 @@ class AntColony:
         parallel_penalty = helper.calculate_parallel_penalty(ant.path_taken, self.employees, self.job_topo_order)
         ant.parallel = parallel_penalty
 
-        ant.fitness = self.make_span_weight * make_span + self.cost_weight * cost
-        ant.fitness /= sum([self.make_span_weight, self.cost_weight])
-        
+        ant.fitness = (make_span + cost) / config.total_weights_op
         ant.fitness += load_penalty + risk_penalty + parallel_penalty
     
     def update_pheromone(self, top: int = 0) -> None:
