@@ -15,6 +15,13 @@ class Assignment:
         self.make_span = 0
         # how much cost is needed to complete this job
         self.cost = 0
+        # the risk of this job
+        self.risk = self.job.risk
+
+        # the ratio of job risk to employee rank
+        # lower ratio means the job is more suited to the rank
+        # high risk job assign to junior employee is bad
+        self.risk_rank_ratio = self.risk / self.employee.rank
 
         self.calculate_make_span()
         self.calculate_cost()
@@ -30,5 +37,5 @@ class Assignment:
         return self.cost
 
     def __repr__(self) -> str:
-        vector = f"E{self.employee}J{self.job}"
+        vector = f"J{self.job}E{self.employee}"
         return vector

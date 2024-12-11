@@ -3,46 +3,15 @@ some helper scripts to make my life easier
 """
 
 from models.job import Job, JOB_TYPE
-from models.team import Team
+from models.employee import Rank
 import random
+import numpy as np
 
 class CycleDetected(Exception):
     """
     raised when a cycle is detected in job dependency
     """
     pass
-
-def create_random_jobs(amount:int) -> list:
-    """
-    returns a list of random jobs
-    """
-    random_jobs = []
-    o_durations = [random.uniform(10, 50) for i in range(amount)]
-    o_costs = [random.uniform(100, 500) for i in range(amount)]
-    risks = [random.uniform(0.1, 0.9) for i in range(amount)]
-
-    for i in range(amount):
-        durations = [o_durations[i], o_durations[i]+5, o_durations[i]+10]
-        costs = [o_costs[i], o_costs[i]+5, o_costs[i]+10]
-        
-        new_job = Job(f"job_{i+1}", i+1, JOB_TYPE.PLANNING, durations, costs, risks[i])
-        random_jobs.append(new_job)
-
-    return random_jobs
-
-def create_random_team(amount: int) -> list:
-    """
-    returns a list of random team
-    """
-    random_teams = []
-    random_time_efficiency = [random.random() for i in range(amount)]
-    random_cost_efficiency = [random.random() for i in range(amount)]
-
-    for i in range(amount):
-        new_team = Team(f"team_{i+1}", i+1, random_time_efficiency[i], random_cost_efficiency[i], JOB_TYPE.PLANNING)
-        random_teams.append(new_team)
-
-    return random_teams
 
 def kahn_sort(jobs: list) -> list:
     """
@@ -128,12 +97,12 @@ def calculate_risk_penalty(formation: list, employees: list) -> float:
     """
     calculate the risk of the schedule based on the job and team distribution
     """
-    sum_of_job_risk = sum([f.job.risk for f in formation])
+    sum_of_job_risk = sum([f.risk for f in formation])
     mean_of_risk = sum_of_job_risk / len(employees)
 
     mean_diff_squared = 0
     for e in employees:
-        team_job_risk = sum([f.job.risk for f in formation if f.employee == e])
+        team_job_risk = sum([f.risk for f in formation if f.employee == e])
         diff = team_job_risk - mean_of_risk
         diff_squared = diff ** 2
         mean_diff_squared += diff_squared
@@ -157,6 +126,20 @@ def calculate_parallel_penalty(formation: list, employees: list, topo_order: lis
                     penalty += len(job) ** 2
 
     return penalty
+
+def calculate_risk_rank_ratio_penalty(formation: list, employees: list) -> float:
+    """
+    calculate the penalty to risk rank ratio
+    """
+    mean_diff_squared = 0.0
+    mean_ratio = np.mean([f.risk_rank_ratio for f in formation])
+    for e in employees:
+        employee_sum = sum([f.risk_rank_ratio for f in formation if f.employee == e])
+        diff = employee_sum - mean_ratio
+        diff_squared = diff ** 2
+        mean_diff_squared += diff_squared
+
+    return mean_diff_squared
 
 def find_longest_make_span(formation: list, employees: list):
     """
@@ -185,15 +168,25 @@ def find_expensive_cost(formation: list, employees: list):
     return max_employee, employee_cost[max_employee] 
 
 def print_formation(formation: list):
-    teams = list({f.employee for f in formation})
+    employee = list({f.employee for f in formation})
     jobs = list({f.job for f in formation})
     topo_order = kahn_sort(jobs)
     
     make_span = calculate_make_span(formation, topo_order)
-    cost = calculate_cost(formation, teams)
+    cost = calculate_cost(formation, employee)
 
-    longest_employee, longest_make_span = find_longest_make_span(formation, teams)
-    expensive_employee, expensive_cost = find_expensive_cost(formation, teams)
+    longest_employee, longest_make_span = find_longest_make_span(formation, employee)
+    expensive_employee, expensive_cost = find_expensive_cost(formation, employee)
+
+    senior = 0
+    junior = 0
+
+    for e in set(f.employee for f in formation):
+        match e.rank:
+            case Rank.JUNIOR:
+                junior += 1
+            case Rank.SENIOR:
+                senior += 1         
 
     print("==================================================================")
     print(f"Total Make span: {make_span:.2f} days")
@@ -218,11 +211,9 @@ def print_formation(formation: list):
             
             for f in formation:
                 if f.job == j:
-                    print(f"{f.employee.name} | {f.make_span:.2f} days | $ {f.cost:.1f}k | {j.name}")
+                    print(f"{f.employee.name} ({f.employee.rank}) | {f.make_span:.2f} days | $ {f.cost:.1f}k | {j.name} ({j.risk})")
                     break
         
         print("---------------------------------------")
-        
-
-
     
+    print(f"{senior} senior | {junior} junior")

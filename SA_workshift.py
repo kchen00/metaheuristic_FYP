@@ -25,6 +25,7 @@ class Solution:
         self.load_balance = 0 
         self.risk_balance = 0
         self.parallel = 0
+        self.risk_rank_ratio = 0
         
         self.selected = 1
 
@@ -32,7 +33,7 @@ class Anneal:
     """
     represent the simulated annealing process
     """
-    def __init__(self, jobs: list, employees: list, max_iteration: int, cooling_rate: float = 0.95, temperature: float = 1) -> None:
+    def __init__(self, jobs: list, employees: list, max_iteration: int, cooling_rate: float = 0.95, temperature: float = 1, min_temperature: float = 100) -> None:
         self.jobs = jobs
         self.employees = employees
         self.job_topo_order = helper.kahn_sort(self.jobs)
@@ -41,7 +42,8 @@ class Anneal:
         self.max_iteration = max_iteration
         self.cooling_rate = cooling_rate
         self.temperature = temperature
-        
+        self.min_temperature = min_temperature
+
         # the current candidate that is being evaluated
         self.current = None
         # the neighbbour solution
@@ -88,8 +90,11 @@ class Anneal:
         parallel_penalty = helper.calculate_parallel_penalty(candidate.state, self.employees, self.job_topo_order)
         candidate.parallel = parallel_penalty
 
+        job_risk_rank_penalty = helper.calculate_risk_rank_ratio_penalty(candidate.state, self.employees)
+        candidate.risk_rank_ratio = job_risk_rank_penalty
+
         candidate.fitness = (make_span + cost) / config.total_weights_op
-        candidate.fitness += load_penalty + risk_penalty + parallel_penalty
+        candidate.fitness += load_penalty + risk_penalty + parallel_penalty + job_risk_rank_penalty
 
     def create_neighbour_solution(self, amount: int, max_changes: int = None, random_changes: bool = False) -> Solution:
         """
@@ -126,11 +131,11 @@ class Anneal:
             for s in selected_state:
                 if random_changes:
                     if random.random() < change_prob:
-                        new_team = random.choice([e for e in self.employees if e.job_focus == s.job.job_type])
-                        s.employee = new_team
+                        new_employee = random.choice([e for e in self.employees if e.job_focus == s.job.job_type])
+                        s.employee = new_employee
                 else:
-                    new_team = random.choice([e for e in self.employees if e.job_focus == s.job.job_type])
-                    s.employee = new_team
+                    new_employee = random.choice([e for e in self.employees if e.job_focus == s.job.job_type])
+                    s.employee = new_employee
 
             neighbour = Solution(state)
             neighbours.append(neighbour)
@@ -162,13 +167,13 @@ class Anneal:
     def cool_down(self):
         self.temperature *= self.cooling_rate
         # preventing temperature going too low
-        self.temperature = max(self.temperature, 0.0001)
+        self.temperature = max(self.temperature, self.min_temperature)
 
 def run() -> Solution:
     jobs = config.jobs
     employees = config.employees
 
-    anneal = Anneal(jobs, employees, 800, cooling_rate=0.99, temperature=8000)
+    anneal = Anneal(jobs, employees, 800, cooling_rate=0.99, temperature=50000, min_temperature=100)
     anneal.current = anneal.create_initial_solution()
     anneal.evaluate_candidate(anneal.current)
     
@@ -214,6 +219,7 @@ helper.print_formation(solution.state)
 print(f"Solution job balance: {solution.load_balance}")
 print(f"Solution risk balance: {solution.risk_balance}")
 print(f"Solution parallel balance: {solution.parallel}")
+print(f"Solution risk rank ratio: {solution.risk_rank_ratio}")
 print(f"Solution is selected at iteration {solution.selected}")
 print(f"Solution string: {solution.state}")
 print(f"Seed: {config.seed}")

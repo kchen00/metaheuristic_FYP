@@ -3,7 +3,7 @@ config contains the jobs and teams
 """
 
 from models.job import Job, JOB_TYPE
-from models.employee import Employee
+from models.employee import Employee, Rank
 from models.assignment import Assignment
 import random
 
@@ -81,21 +81,21 @@ jobs = [
 ]
 
 employees = [
-    Employee("XGWGK", 1, 0.80, 0.83, JOB_TYPE.PLANNING),
-    Employee("WLLXJ", 2, 0.84, 0.86, JOB_TYPE.PLANNING),
-    Employee("GSHJX", 3, 0.80, 0.89, JOB_TYPE.PLANNING),
-    Employee("GTCSM", 6, 0.81, 0.86, JOB_TYPE.ANALYSIS),
-    Employee("YNTVI", 7, 0.92, 0.82, JOB_TYPE.ANALYSIS),
-    Employee("TVFKY", 8, 0.88, 0.96, JOB_TYPE.ANALYSIS),
-    Employee("TJXNS", 11, 0.88, 0.83, JOB_TYPE.DESIGN),
-    Employee("YGQXC", 12, 0.84, 0.93, JOB_TYPE.DESIGN),
-    Employee("JDDQZ", 13, 0.86, 0.87, JOB_TYPE.DESIGN),
-    Employee("TFFUA", 16, 0.74, 0.85, JOB_TYPE.IMPLEMENTATION),
-    Employee("JBCDP", 17, 0.96, 0.81, JOB_TYPE.IMPLEMENTATION),
-    Employee("ZFMUR", 18, 0.92, 0.89, JOB_TYPE.IMPLEMENTATION),
-    Employee("OWTEW", 21, 0.87, 0.83, JOB_TYPE.MAINTAINENCE),
-    Employee("NERGG", 22, 0.85, 0.77, JOB_TYPE.MAINTAINENCE),
-    Employee("FJQHF", 23, 0.95, 0.82, JOB_TYPE.MAINTAINENCE),
+    Employee("XGWGK", 1, 0.80, 0.83, JOB_TYPE.PLANNING, Rank.SENIOR),
+    Employee("WLLXJ", 2, 0.64, 0.66, JOB_TYPE.PLANNING, Rank.JUNIOR),
+    Employee("GSHJX", 3, 0.80, 0.89, JOB_TYPE.PLANNING, Rank.SENIOR),
+    Employee("GTCSM", 6, 0.61, 0.76, JOB_TYPE.ANALYSIS, Rank.JUNIOR),
+    Employee("YNTVI", 7, 0.92, 0.82, JOB_TYPE.ANALYSIS, Rank.SENIOR),
+    Employee("TVFKY", 8, 0.88, 0.96, JOB_TYPE.ANALYSIS, Rank.SENIOR),
+    Employee("TJXNS", 11, 0.58, 0.63, JOB_TYPE.DESIGN, Rank.JUNIOR),
+    Employee("YGQXC", 12, 0.84, 0.93, JOB_TYPE.DESIGN, Rank.SENIOR),
+    Employee("JDDQZ", 13, 0.86, 0.87, JOB_TYPE.DESIGN, Rank.SENIOR),
+    Employee("TFFUA", 16, 0.74, 0.85, JOB_TYPE.IMPLEMENTATION, Rank.SENIOR),
+    Employee("JBCDP", 17, 0.76, 0.81, JOB_TYPE.IMPLEMENTATION, Rank.JUNIOR),
+    Employee("ZFMUR", 18, 0.92, 0.89, JOB_TYPE.IMPLEMENTATION, Rank.SENIOR),
+    Employee("OWTEW", 21, 0.67, 0.73, JOB_TYPE.MAINTAINENCE, Rank.JUNIOR),
+    Employee("NERGG", 22, 0.85, 0.77, JOB_TYPE.MAINTAINENCE, Rank.SENIOR),
+    Employee("FJQHF", 23, 0.95, 0.82, JOB_TYPE.MAINTAINENCE, Rank.SENIOR),
 ]
 
 # building job dependency

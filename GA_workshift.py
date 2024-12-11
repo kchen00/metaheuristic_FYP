@@ -24,6 +24,7 @@ class Chromosome:
         self.risk_balance = 0
         # how parallel if the job distribution
         self.parallel = 0
+        self.risk_rank_ratio = 0
 
         self.selected = 1
     
@@ -132,10 +133,13 @@ class Population:
 
         parallel_penalty = helper.calculate_parallel_penalty(chromosome.genes, self.employees, self.job_topo_order)
         chromosome.parallel = parallel_penalty
+
+        job_risk_rank_penalty = helper.calculate_risk_rank_ratio_penalty(chromosome.genes, self.employees)
+        chromosome.risk_rank_ratio = job_risk_rank_penalty
         
         chromosome.fitness = (make_span + cost) / config.total_weights_op
         # adding penalty to final fitness because we minimizing the fitness
-        chromosome.fitness += load_penalty + risk_penalty + parallel_penalty
+        chromosome.fitness += load_penalty + risk_penalty + parallel_penalty + job_risk_rank_penalty
 
     def rank_select(self, amount: int) -> list:
         """
@@ -287,6 +291,7 @@ helper.print_formation(solution.genes)
 print(f"Solution job balance: {solution.load_balance}")
 print(f"Solution risk balance: {solution.risk_balance}")
 print(f"Solution parallel balance: {solution.parallel}")
+print(f"Solution risk rank ratio: {solution.risk_rank_ratio}")
 print(f"Solution is selected at generation {solution.selected}")
 print(f"Solution string {solution.genes}")
 print(f"Seed: {config.seed}")

@@ -30,6 +30,7 @@ class Ant:
         self.risk_balance = 0
         self.parallel = 0
         self.fitness = 0
+        self.risk_rank_ratio = 0
 
         self.selected = 1
 
@@ -110,8 +111,11 @@ class AntColony:
         parallel_penalty = helper.calculate_parallel_penalty(ant.path_taken, self.employees, self.job_topo_order)
         ant.parallel = parallel_penalty
 
+        job_risk_rank_penalty = helper.calculate_risk_rank_ratio_penalty(ant.path_taken, self.employees)
+        ant.risk_rank_ratio = job_risk_rank_penalty
+
         ant.fitness = (make_span + cost) / config.total_weights_op
-        ant.fitness += load_penalty + risk_penalty + parallel_penalty
+        ant.fitness += load_penalty + risk_penalty + parallel_penalty + job_risk_rank_penalty
     
     def update_pheromone(self, top: int = 0) -> None:
         """
@@ -187,6 +191,7 @@ helper.print_formation(solution.path_taken)
 print(f"Solution job balance: {solution.load_balance}")
 print(f"Solution risk balance: {solution.risk_balance}")
 print(f"Solution parallel balance: {solution.parallel}")
+print(f"Solution risk rank ratio: {solution.risk_rank_ratio}")
 print(f"Solution is selected at iteration {solution.selected}")
 print(f"Solution string: {solution.path_taken}")
 print(f"Seed: {config.seed}")
