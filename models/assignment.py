@@ -1,34 +1,17 @@
-from models.job import Job
-from models.team import Team
+from models.task import Task
+from models.member import Member
 
 class Assignment:
-    """
-    represent the assigment of job and team in a schedule
-    """
-    def __init__(self, j: Job, t: Team) -> None:
-        # making sure that both job type and job focus is the same
-        assert j.job_type == t.job_focus
+    def __init__(self, task: Task, member: Member):
+        self.task: Task = task
+        self.member: Member = member
+        self.compatibility = 0.0
         
-        self.job: Job = j
-        self.team: Team = t
-        # how much time is needed to complete the job 
-        self.make_span = 0
-        # how much cost is needed to complete this job
-        self.cost = 0
+        self.check_compatibility()
 
-        self.calculate_make_span()
-        self.calculate_cost()
-    
-    def calculate_make_span(self):
-        self.make_span = self.job.weighted_duration / self.team.time_efficiency
+    def check_compatibility(self) -> float:
+        total_task = len(self.task.skills | self.member.skill_set)
+        overlap = len(self.task.skills & self.member.skill_set)
+        self.compatibility = overlap / total_task
 
-        return self.make_span
-
-    def calculate_cost(self):
-        self.cost = self.job.weighted_cost / self.team.cost_efficieny
-
-        return self.cost
-
-    def __repr__(self) -> str:
-        vector = f"T{self.team}J{self.job}"
-        return vector
+        return self.compatibility
