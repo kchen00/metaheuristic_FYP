@@ -1,4 +1,5 @@
 from models.assignment import Assignment
+from models.project import Project
 import setup
 import fitness_checker
 import random
@@ -44,14 +45,14 @@ class SimulatedAnnealing:
         
         lower - less changes'''
         new_neighbours = list()
-        change_prob = 1 / self.iteration        
+        change_prob = np.exp(-self.iteration/self.temperature) 
+
         for i in range(self.total_neighbours):
             states = list()
             for a in self.current_solution.states:
                 state = None
                 if random.random() < change_prob:
                     state = State(a.task, random.choice(setup.members))
-                    changes_made += 1
                 else:
                     state = State(a.task, a.member)
                 
@@ -85,6 +86,7 @@ class SimulatedAnnealing:
             # when diff > 0, the new solution is worse than the current solution
             if diff > 0:
                 print("God has accepted the worse solution")
+
             # when diff < 0, the new solution is better than the current solution
             elif diff < 0:
                 print("New best found!")
@@ -92,9 +94,9 @@ class SimulatedAnnealing:
             self.current_solution = best_neighbour
 
 current_solution = Solution(setup.assignments)
-max_iteration = 10
+max_iteration = 1000
 
-sa = SimulatedAnnealing(current_solution, initial_temperature=1.0, cd=0.9, total_neighbour=5)
+sa = SimulatedAnnealing(current_solution, initial_temperature=10000, cd=0.99, total_neighbour=100)
 while sa.iteration <= max_iteration:
     sa.create_neighbour_solution()
     sa.evaluate_solution()
@@ -103,15 +105,13 @@ while sa.iteration <= max_iteration:
 
     average_fitness = np.mean([n.fitness for n in sa.neighbours])
     print(f"Iteration {sa.iteration} | temperature={sa.temperature:.8f} | Average fitness:{average_fitness:.4f}")
-    sa.record.append(sa.current_solution.fitness)
+    sa.record.append(average_fitness)
 
     sa.iteration += 1
     
 plt.plot(sa.record)
 plt.show()
 
-print(sa.current_solution)
-for s in sa.current_solution.states:
-    print(f"{s.task.name} -> {s.member.name}", [a.member.name for a in setup.project.assignments if (a.task == s.task and a.member != s.member)])
-difference_checker.check_difference(sa.current_solution.states)
+new_solution: Project = Project(setup.project.name, sa.current_solution.states)
+difference_checker.print_comparison(setup.project, new_solution)
 

@@ -1,4 +1,5 @@
 from models.assignment import Assignment
+from models.project import Project
 import setup
 import fitness_checker
 import random
@@ -18,23 +19,28 @@ class Ant:
         self.nodes: list[Node] = list()
         self.fitness = 0
 
-    def explore(self, nodes: list):
+    def explore(self, nodes: list[Node]):
         '''explore and choose the node
         
         leaves pheromones on the node'''
         path = list()
         for t in setup.tasks:
             valid_nodes: list[Node] = [n for n in nodes if n.task == t]
+            
+            # calculating the probabilitiy of choosing a node to explore 
             sum_of_pheromone = sum([n.pheromone for n in valid_nodes])
             probability = [n.pheromone/sum_of_pheromone for n in valid_nodes]
+            
+            # choose node based on probability
             choosen_node = random.choices(valid_nodes, probability)
+            
             path.append(choosen_node[0])
 
         self.nodes = path
     
     def leave_pheromone(self, rank: int):
         '''leaves pheromone on the choosen nodes'''
-        # using ranking as pheromone value, because sometimes ant may may fitness of 0
+        # using ranking as pheromone value, because sometimes ant may have fitness of 0
         for n in self.nodes:
             n.pheromone += 1/rank
 
@@ -61,7 +67,7 @@ class ACO:
         return nodes
 
     def evaluate_fitness(self):
-        '''evaluates the fitness of each ant'''
+        '''evaluates the fitness of each ant'''        
         for a in self.ants:
             a.fitness = fitness_checker.check_fitness(a.nodes)
 
@@ -86,14 +92,14 @@ class ACO:
             self.best = top_ranking_ants[0]
 
 
-aco = ACO(population=100, evaporate=0.1)
-max_iteration = 500
+aco = ACO(population=100, evaporate=0.01)
+max_iteration = 800
 while aco.iteration <= max_iteration:
     for a in aco.ants:
         a.explore(aco.path_nodes)
     
     aco.evaluate_fitness()
-    aco.update_pheromone(top=0.2)
+    aco.update_pheromone(top=0.1)
     
     average_fitness = np.mean([a.fitness for a in aco.ants])
     print(f"iteration {aco.iteration} | Average fitness: {average_fitness:.4f}")
@@ -104,7 +110,5 @@ while aco.iteration <= max_iteration:
 plt.plot(aco.record)
 plt.show()
 
-print(aco.best)
-for n in aco.best.nodes:
-    print(f"{n.task.name} -> {n.member.name}", [n.member.name for a in setup.project.assignments if (a.task == n.task and a.member != n.member)])
-difference_checker.check_difference(aco.best.nodes)
+new_solution: Project = Project(setup.project.name, aco.best.nodes)
+difference_checker.print_comparison(setup.project, new_solution)

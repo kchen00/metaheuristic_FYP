@@ -1,4 +1,5 @@
 from models.assignment import Assignment
+from models.project import Project
 import setup
 import fitness_checker
 import random
@@ -69,6 +70,7 @@ class GeneticAlgoritm:
                 self.best = current_best
     
     def produce_bebes(self):
+        '''produce new bebes and make mutation'''
         # cross over operation
         bebes: list[Chromosomes] = list()
         while len(self.chromosomes) + len(bebes) < self.size:
@@ -92,23 +94,21 @@ class GeneticAlgoritm:
         # resample to make sure that the size of chromosome is equal to population size
         self.chromosomes = random.sample(self.chromosomes, self.size)
 
-ga = GeneticAlgoritm(200, 0.5, 0.99)
-max_iteration = 1000
+ga = GeneticAlgoritm(100, 0.5, 0.9)
+max_iteration = 800
 while ga.generation <= max_iteration:
     ga.evaluate_chromosome()
-    ga.eliminate_chromosome(0.6)
+    ga.eliminate_chromosome(0.1)
     ga.produce_bebes()
 
     average_fitness = np.mean([c.fitness for c in ga.chromosomes])
     print(f"Generation: {ga.generation} | Population: {len(ga.chromosomes)} | Average fitness: {average_fitness:.4f}")
-    ga.record.append(ga.best.fitness)
+    ga.record.append(average_fitness)
 
     ga.generation += 1
 
 plt.plot(ga.record)
 plt.show()
 
-print(ga.best)
-for g in ga.best.genes:
-    print(f"{g.task.name} -> {g.member.name}", [a.member.name for a in setup.project.assignments if (a.task == g.task and a.member != g.member)])
-difference_checker.check_difference(ga.best.genes)
+new_solution: Project = Project(setup.project.name, ga.best.genes)
+difference_checker.print_comparison(setup.project, new_solution)
