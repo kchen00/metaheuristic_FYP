@@ -6,8 +6,8 @@ class Assignment:
         self.task: Task = task
         self.member: Member = member
         
-        self.compatibility = self.check_compatibility()
-        self.estimated_time = 1 / self.member.efficiency
+        self.compatibility:float = self.check_compatibility()
+        self.estimated_time:float = 1 / self.member.efficiency
 
     def check_compatibility(self) -> float:
         total_task = len(self.task.skills | self.member.skill_set)

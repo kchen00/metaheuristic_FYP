@@ -31,20 +31,20 @@ class Project:
         print(f"total salary:  {self.total_salary}")
         print(f"estimated total time:  {self.total_estimated_time}")
     
-    def get_member(self, task: Task):
+    def get_member(self, task: Task) -> list:
         return [a.member.name for a in self.assignments if a.task == task]
     
-    def get_total_salary(self):
+    def get_total_salary(self) -> float:
         '''get the total salary of this project'''
         total_salary = sum({a.member.salary for a in self.assignments})
         return total_salary
     
-    def get_task_compatibility(self):
+    def get_task_compatibility(self) -> float:
         '''get the total average task compatibilitiy of this project'''
         task_compatility = sum([a.compatibility for a in self.assignments])
         return task_compatility
     
-    def get_task_load(self):
+    def get_task_load(self) -> float:
         '''get the average task load of this project'''
         # the average  load for each member in this assignments 
         members = set(a.member for a in self.assignments)
@@ -62,14 +62,13 @@ class Project:
 
         return diff_squared
     
-    
-    def get_total_estimated_time(self):
+    def get_total_estimated_time(self) -> float:
         '''get estimated time needed of this project'''
         total_estimated_time = sum([a.estimated_time for a in self.assignments])
 
         return total_estimated_time
 
-    def get_collaboration_score(self):
+    def get_collaboration_score(self) -> float:
         '''get the average collaboration score for this project'''
         collab_score = 0
         for a in self.assignments:
@@ -80,7 +79,7 @@ class Project:
         
         return collab_score
 
-    def get_team_size(self):
+    def get_team_size(self) -> int:
         '''get the team size for this project'''
         members = set(a.member for a in self.assignments)
         team_size = len(members)

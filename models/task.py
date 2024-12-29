@@ -1,4 +1,4 @@
 class Task:
-    def __init__(self, name: str, skillS: set):
+    def __init__(self, name: str, skills: set):
         self.name = name
-        self.skills = skillS
+        self.skills = skills

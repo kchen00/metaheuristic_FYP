@@ -27,7 +27,7 @@ def check_team_size(assignments: list[Assignment], current_solution: Project = p
     team_size = len(unique_members)
 
     team_size_imp = minimize_imp(team_size, current_solution.team_size)
-    return team_size
+    return team_size_imp
 
 def check_task_load(assignments: list[Assignment], current_solution: Project = project) -> float:
     '''return the improvement of old task load to new task load'''
