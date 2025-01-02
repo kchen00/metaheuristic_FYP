@@ -52,9 +52,10 @@ class ACO:
         self.iteration = 1
         self.ants = [Ant() for i in range(self.population)]
         self.path_nodes = self.initilize_path_nodes()
-
-        self.best = None
-        self.record = list()
+        
+        self.best: Ant = None
+        self.average_fit = list()
+        self.best_fit = list()
 
     def initilize_path_nodes(self) -> list[Node]:
         '''generates all possible node'''
@@ -67,9 +68,13 @@ class ACO:
         return nodes
 
     def evaluate_fitness(self):
-        '''evaluates the fitness of each ant'''        
+        '''evaluates the fitness of each ant
+        returns average fitness and the best fitness'''        
         for a in self.ants:
             a.fitness = fitness_checker.check_fitness(a.nodes)
+
+        fitness = [a.fitness for a in self.ants]
+        return np.mean(fitness), max(fitness)
 
     def update_pheromone(self, top: float = 0.6):
         '''updates the pheromone'''
@@ -87,28 +92,39 @@ class ACO:
         # recording the best ant
         if self.iteration == 1:
             self.best = top_ranking_ants[0]
-        elif top_ranking_ants[0].fitness > self.best.fitness:
-            print(f"new best found! {self.best.fitness}->{top_ranking_ants[0].fitness}")
-            self.best = top_ranking_ants[0]
-
-
-aco = ACO(population=100, evaporate=0.01)
-max_iteration = 800
-while aco.iteration <= max_iteration:
-    for a in aco.ants:
-        a.explore(aco.path_nodes)
+        else:
+            if top_ranking_ants[0].fitness > self.best_fit[-1]:
+                print(f"new best found! {self.best_fit[-1]}->{top_ranking_ants[0].fitness}")
+                self.best = top_ranking_ants[0]
     
-    aco.evaluate_fitness()
-    aco.update_pheromone(top=0.1)
-    
-    average_fitness = np.mean([a.fitness for a in aco.ants])
-    print(f"iteration {aco.iteration} | Average fitness: {average_fitness:.4f}")
-    aco.record.append(average_fitness)
+    def record_fitness(self, average_fitness: float, best_fitness: float):
+        '''record the average fitness and best fitness'''
+        self.average_fit.append(average_fitness)
+        if len(self.best_fit) == 0:
+            self.best_fit.append(best_fitness)
+        else:
+            self.best_fit.append(best_fitness if best_fitness > self.best_fit[-1] else self.best_fit[-1])
+            
 
-    aco.iteration += 1
-    
-plt.plot(aco.record)
-plt.show()
+def run(max_iteration: int = 800, enable_visuals: bool = True) -> tuple:
+    aco = ACO(population=100, evaporate=0.01)
+    while aco.iteration <= max_iteration:
+        for a in aco.ants:
+            a.explore(aco.path_nodes)
+        average_fitness, best_fitness = aco.evaluate_fitness()
+        aco.update_pheromone(top=0.1)
+        aco.record_fitness(average_fitness, best_fitness)
 
-new_solution: Project = Project(setup.project.name, aco.best.nodes)
-difference_checker.print_comparison(setup.project, new_solution)
+        print(f"ACO | Iteration {aco.iteration} | Average fitness: {average_fitness:.4f}")
+        aco.iteration += 1
+
+    if enable_visuals:   
+        plt.plot(aco.average_fit)
+        plt.show()
+
+        new_solution: Project = Project(setup.project.name, aco.best.nodes)
+        difference_checker.print_comparison(setup.project, new_solution)
+
+    return aco.average_fit, aco.best_fit
+
+# run()
