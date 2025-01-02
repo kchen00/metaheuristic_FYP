@@ -38,8 +38,8 @@ class GeneticAlgoritm:
         self.initialize_population()
 
         self.best:Chromosomes = None
-
-        self.record = list()
+        self.average_fit = list()
+        self.best_fit = list()
 
     def initialize_population(self):
         for i in range(self.size):
@@ -52,8 +52,13 @@ class GeneticAlgoritm:
             self.chromosomes.append(chromosome)
 
     def evaluate_chromosome(self):
+        '''evaluates the fitness of the chromosomes
+        returns average of fitness and the best fitness'''
         for c in self.chromosomes:
             c.fitness = fitness_checker.check_fitness(c.genes)
+
+        fitness = [c.fitness for c in self.chromosomes]
+        return np.mean(fitness), max(fitness)
 
     def eliminate_chromosome(self, top: float = 0.2):
         self.chromosomes.sort(key=lambda x: x.fitness, reverse=True)
@@ -69,13 +74,32 @@ class GeneticAlgoritm:
                 print(f"new best found! {self.best.fitness}->{current_best.fitness}")
                 self.best = current_best
     
+    def tournament_selection(self, tournament_size: int = 2, parent_num: int = 20):
+        '''use tournament selection to choose parent for crossover operation'''
+        winners = list()
+        while len(winners) < parent_num:
+            parents: list[Chromosomes] = random.sample(self.chromosomes, tournament_size)
+            winner = max(parents, key=lambda x: x.fitness)
+            winners.append(winner)
+            self.chromosomes.remove(winner)
+
+        self.chromosomes = winners
+
+        current_best:Chromosomes = max(self.chromosomes, key=lambda x: x.fitness)
+        if self.generation == 1:
+            self.best = current_best
+        else:
+            # if the current_best is better than previoud best, accept it
+            if current_best.fitness > self.best.fitness:
+                print(f"new best found! {self.best.fitness}->{current_best.fitness}")
+                self.best = current_best
+    
     def produce_bebes(self):
         '''produce new bebes and make mutation'''
         # cross over operation
         bebes: list[Chromosomes] = list()
         while len(self.chromosomes) + len(bebes) < self.size:
             if random.random() < self.cross_over:
-                parent_1 = self.best
                 parent_1, parent_2 = random.sample(self.chromosomes, 2)
                 bebe_1, bebe_2 = parent_1.produce_bebe(parent_2)
 
@@ -94,21 +118,33 @@ class GeneticAlgoritm:
         # resample to make sure that the size of chromosome is equal to population size
         self.chromosomes = random.sample(self.chromosomes, self.size)
 
-ga = GeneticAlgoritm(100, 0.5, 0.9)
-max_iteration = 800
-while ga.generation <= max_iteration:
-    ga.evaluate_chromosome()
-    ga.eliminate_chromosome(0.1)
-    ga.produce_bebes()
+    def record_fitness(self, average_fitness: float, best_fitness: float):
+        '''record the average fitness and best fitness'''
+        self.average_fit.append(average_fitness)
+        if len(self.best_fit) == 0:
+            self.best_fit.append(best_fitness)
+        else:
+            self.best_fit.append(best_fitness if best_fitness > self.best_fit[-1] else self.best_fit[-1])
 
-    average_fitness = np.mean([c.fitness for c in ga.chromosomes])
-    print(f"Generation: {ga.generation} | Population: {len(ga.chromosomes)} | Average fitness: {average_fitness:.4f}")
-    ga.record.append(average_fitness)
+def run(max_iteration: int = 800, enable_visuals:bool = True) -> tuple:
+    ga = GeneticAlgoritm(100, 0.1, 0.9)
+    while ga.generation <= max_iteration:
+        average_fitness, best_fitness = ga.evaluate_chromosome()
+        ga.tournament_selection(tournament_size=4, parent_num=20)
+        ga.produce_bebes()
 
-    ga.generation += 1
+        ga.record_fitness(average_fitness, best_fitness)
+        print(f"GA | Generation: {ga.generation} | Population: {len(ga.chromosomes)} | Average fitness: {average_fitness:.4f}")
+        ga.generation += 1
 
-plt.plot(ga.record)
-plt.show()
+    if enable_visuals:
+        plt.plot(ga.average_fit)
+        plt.show()
 
-new_solution: Project = Project(setup.project.name, ga.best.genes)
-difference_checker.print_comparison(setup.project, new_solution)
+        new_solution: Project = Project(setup.project.name, ga.best.genes)
+        difference_checker.print_comparison(setup.project, new_solution)
+
+    print(np.mean(ga.best_fit))
+    return ga.average_fit, ga.best_fit
+
+# run()

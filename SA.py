@@ -6,6 +6,7 @@ import random
 import numpy as np
 from matplotlib import pyplot as plt
 import difference_checker
+from copy import deepcopy
 
 class State(Assignment):
     '''represent a possible state'''
@@ -28,7 +29,8 @@ class SimulatedAnnealing:
 
         self.iteration = 1
 
-        self.record = list()
+        self.average_fit = list()
+        self.best_fit = list()
     
     def cooldown(self):
         '''cool down the temperature'''
@@ -64,9 +66,13 @@ class SimulatedAnnealing:
         self.neighbours = new_neighbours
     
     def evaluate_solution(self):
-        '''evaluates the fitness of all solutions'''
+        '''evaluates the fitness of all solutions
+        returns the average fitness and best fitness'''
         for n in self.neighbours:
             n.fitness = fitness_checker.check_fitness(n.states)
+        
+        fitness = [n.fitness for n in self.neighbours]
+        return np.mean(fitness), max(fitness)
 
     def decide_solution(self):
         '''decide which solution to take after the fitness is evaluated'''
@@ -93,25 +99,44 @@ class SimulatedAnnealing:
             
             self.current_solution = best_neighbour
 
-current_solution = Solution(setup.assignments)
-max_iteration = 1000
+        # recording the best fitness
+        if len(self.best_fit) == 0:
+            self.best_fit.append(self.current_solution.fitness)
+        else:
+            current_best = self.best_fit[-1]
+            if current_best < self.current_solution.fitness:
+                self.best_fit.append(self.current_solution.fitness)
+            else:
+                self.best_fit.append(current_best)
+        
+    def record_fitness(self, average_fitness: float, best_fitness: float):
+        '''record the average fitness and best fitness'''
+        self.average_fit.append(average_fitness)
+        if len(self.best_fit) == 0:
+            self.best_fit.append(best_fitness)
+        else:
+            self.best_fit.append(best_fitness if best_fitness > self.best_fit[-1] else self.best_fit[-1])
 
-sa = SimulatedAnnealing(current_solution, initial_temperature=10000, cd=0.99, total_neighbour=100)
-while sa.iteration <= max_iteration:
-    sa.create_neighbour_solution()
-    sa.evaluate_solution()
-    sa.decide_solution()
-    sa.cooldown()
+initial_solution = Solution(setup.assignments)
+def run(max_iteration: int = 800, enable_visuals: bool = True) -> tuple:
+    sa = SimulatedAnnealing(initial_solution, initial_temperature=10000, cd=0.99, total_neighbour=100)
+    while sa.iteration <= max_iteration:
+        sa.create_neighbour_solution()
+        average_fitness, best_fitness = sa.evaluate_solution()
+        sa.decide_solution()
+        sa.cooldown()
+        sa.record_fitness(average_fitness, best_fitness)
+        
+        print(f"SA | Iteration {sa.iteration} | temperature={sa.temperature:.8f} | Average fitness:{average_fitness:.4f}")
+        sa.iteration += 1
 
-    average_fitness = np.mean([n.fitness for n in sa.neighbours])
-    print(f"Iteration {sa.iteration} | temperature={sa.temperature:.8f} | Average fitness:{average_fitness:.4f}")
-    sa.record.append(average_fitness)
+    if enable_visuals: 
+        plt.plot(sa.average_fit)
+        plt.show()
 
-    sa.iteration += 1
-    
-plt.plot(sa.record)
-plt.show()
+        new_solution: Project = Project(setup.project.name, sa.current_solution.states)
+        difference_checker.print_comparison(setup.project, new_solution)
 
-new_solution: Project = Project(setup.project.name, sa.current_solution.states)
-difference_checker.print_comparison(setup.project, new_solution)
+    return sa.average_fit, sa.best_fit
 
+# run()

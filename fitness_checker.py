@@ -99,3 +99,8 @@ def check_fitness(assignments: list, current_solution: Project = project) -> flo
     fitness += collab_score_imp
 
     return fitness
+
+def average_fitness(solution_fitness: list[float]) -> float:
+    avg = np.mean(solution_fitness)
+
+    return avg
