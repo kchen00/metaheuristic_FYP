@@ -53,13 +53,11 @@ def save_to_csv(filename: str, pc_resources:list, fitness:list):
             writer.writerow(row)
 
 def benchmark(mh_func: GA, mh_name: str, iterations: int = 10):
-    seed = [random.randint(0, 10000) for _ in range(iterations)]
     pc_resources = list()
     best_fitness = list()
     average_fitness = list()
 
-    for i in seed:
-        mh_func.setup.random.seed = i
+    for i in range(iterations):
         results = monitor_resources(lambda: mh_func.run(enable_visuals=False))
         pc_resources.append((results[0], results[1], results[2]))
 
