@@ -127,7 +127,7 @@ def run(max_iteration: int = 800, enable_visuals: bool = True) -> tuple:
         sa.cooldown()
         sa.record_fitness(average_fitness, best_fitness)
         
-        print(f"SA | Iteration {sa.iteration} | temperature={sa.temperature:.8f} | Average fitness:{average_fitness:.4f}")
+        print(f"SA | Iteration {sa.iteration} | temperature={sa.temperature:.8f} | Average fitness:{average_fitness:.4f} | Best fit: {sa.best_fit[-1]:.4f}")
         sa.iteration += 1
 
     if enable_visuals: 

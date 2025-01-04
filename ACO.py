@@ -115,7 +115,7 @@ def run(max_iteration: int = 800, enable_visuals: bool = True) -> tuple:
         aco.update_pheromone(top=0.1)
         aco.record_fitness(average_fitness, best_fitness)
 
-        print(f"ACO | Iteration {aco.iteration} | Average fitness: {average_fitness:.4f}")
+        print(f"ACO | Iteration {aco.iteration} | Average fitness: {average_fitness:.4f} | Best: {aco.best_fit[-1]:.4f}")
         aco.iteration += 1
 
     if enable_visuals:   

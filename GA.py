@@ -130,11 +130,11 @@ def run(max_iteration: int = 800, enable_visuals:bool = True) -> tuple:
     ga = GeneticAlgoritm(100, 0.1, 0.9)
     while ga.generation <= max_iteration:
         average_fitness, best_fitness = ga.evaluate_chromosome()
-        ga.tournament_selection(tournament_size=4, parent_num=20)
+        ga.tournament_selection(tournament_size=4, parent_num=80)
         ga.produce_bebes()
 
         ga.record_fitness(average_fitness, best_fitness)
-        print(f"GA | Generation: {ga.generation} | Population: {len(ga.chromosomes)} | Average fitness: {average_fitness:.4f}")
+        print(f"GA | Generation: {ga.generation} | Population: {len(ga.chromosomes)} | Average fitness: {average_fitness:.4f} | Best fit: {ga.best_fit[-1]:.4f}")
         ga.generation += 1
 
     if enable_visuals:
@@ -144,7 +144,6 @@ def run(max_iteration: int = 800, enable_visuals:bool = True) -> tuple:
         new_solution: Project = Project(setup.project.name, ga.best.genes)
         difference_checker.print_comparison(setup.project, new_solution)
 
-    print(np.mean(ga.best_fit))
     return ga.average_fit, ga.best_fit
 
 # run()
