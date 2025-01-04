@@ -6,10 +6,20 @@ from setup import project
 # to maximize - use new-old / old
 # to minimize - use old-new / old
 
-def maximize_imp(new:float, old:float):
+def maximize_imp(new:float, old:float) -> float:
+    if old == 0:
+        # return an arbitary number when the old is 0 to avoid division by zero error
+        if new == 0:
+            return 0
+        return new
     return (new - old) / abs(old)
 
-def minimize_imp(new:float, old:float):
+def minimize_imp(new:float, old:float) -> float:
+    if old == 0:
+        # return an arbitary number when the old is 0 to avoid division by zero error
+        if new == 0:
+            return 0
+        return new
     return (old - new) / abs(old)
 
 def check_task_compatibility_imp(assignments: list[Assignment], current_solution: Project = project) -> float:
@@ -97,6 +107,9 @@ def check_fitness(assignments: list, current_solution: Project = project) -> flo
 
     collab_score_imp = check_collaboration_score_imp(assignments, current_solution)
     fitness += collab_score_imp
+
+    team_size_imp = check_team_size(assignments, current_solution)
+    fitness += team_size_imp
 
     return fitness
 
