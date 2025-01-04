@@ -3,117 +3,105 @@ from models.skill import Skill
 from models.project import Project
 from models.task import Task
 from models.assignment import Assignment
-import random
+import random, json
 
 random.seed(1)
 
-# skills 
-skill_1 = Skill("java_script")
-skill_2 = Skill("python")
-skill_3 = Skill("java")
-skill_4 = Skill("php")
-skill_5 = Skill("web_development")
-skill_6 = Skill("web_scrapping")
-skill_7 = Skill("ai")
+staffs = dict()
+staff_skills = dict()
 
-skills = [
-    skill_1,
-    skill_2,
-    skill_3,
-    skill_4,
-    skill_5,
-    skill_6,
-    skill_7,
-]
+staff_json = dict()
+with open("data/staff_expertise/staff_expertise.json", "r") as f:
+    staff_json = json.load(f)
 
-# team members
-member_1 = Member("member_1", 1000, 0.35)
-member_2 = Member("member_2", 1200, 0.65)
-member_3 = Member("member_3", 1400, 0.75)
-member_4 = Member("member_4", 2000, 0.95)
-member_5 = Member("member_5", 1800, 0.60)
+# creating the list of project members
+for s in staff_json:
+    new_member = Member(s, staff_json[s]["salary"], staff_json[s]["efficiency"])
+    staffs[s] = new_member
 
-# Adding collaboration scores (add_score method)
-# member_1's scores
-member_1.add_score(member_2, 8)   # Good score
-member_1.add_score(member_3, 6)   # Decent score
-member_1.add_score(member_4, 7)   # Good score
-member_1.add_score(member_5, -5)  # Bad impression
+    # add the skillset to the new member
+    new_member_skill = list()
+    for s in staff_json[s]["expertise"]:
+        # check if the skill already created, else create one
+        skill_obj = staff_skills.get(s)
+        if skill_obj:
+            new_member_skill.append(skill_obj)
+        else:
+            new_skill = Skill(s)
+            staff_skills[s] = new_skill
+            new_member_skill.append(new_skill)
+        
+    new_member.skill_set = set(new_member_skill)
 
-# member_2's scores
-member_2.add_score(member_1, 8)   # Good score
-member_2.add_score(member_3, 7)   # Good score
-member_2.add_score(member_4, -6)  # Bad impression
-member_2.add_score(member_5, 9)   # Excellent score
+for s in staffs:
+    member: Member = staffs[s]
+    scores = staff_json[s]["scores"]
 
-# member_3's scores
-member_3.add_score(member_1, 6)   # Decent score
-member_3.add_score(member_2, 7)   # Good score
-member_3.add_score(member_4, 8)   # Excellent score
-member_3.add_score(member_5, -4)  # Bad impression
+    for i, m in enumerate(staffs):
+        if scores[i] != 0:
+            member.add_score(staffs[m], scores[i])
 
-# member_4's scores
-member_4.add_score(member_1, 7)   # Good score
-member_4.add_score(member_2, -6)  # Bad impression
-member_4.add_score(member_3, 8)   # Excellent score
-member_4.add_score(member_5, 7)   # Good score
+tasks:list[Task] = list()
+task_json = dict()
+with open("data/project task/task.json", "r") as f:
+    task_json = json.load(f)
+for t in task_json:
+    new_task = Task(t["task"], set())
+    for s in t["skills_required"]:
+        skill_obj = staff_skills.get(s)
+        if skill_obj:
+            new_task.skills.add(skill_obj)
+        else:
+            new_skill = Skill(s)
+            staff_skills[s] = new_skill
+            new_task.skills.add(new_skill)
+    
+    tasks.append(new_task)
 
-# member_5's scores
-member_5.add_score(member_1, -5)  # Bad impression
-member_5.add_score(member_2, 9)   # Excellent score
-member_5.add_score(member_3, -4)  # Bad impression
-member_5.add_score(member_4, 7)   # Good score
+# extracting the members and skills for easier setup
+skills:list[Skill] = list(staff_skills.values())
+members:list[Member] = list(staffs.values())
 
-members = [
-    member_1,
-    member_2,
-    member_3,
-    member_4,
-    member_5,
-]
+def low_compatibility():
+    '''create team formation with low compatibility'''
+    assignments = []
+    for t in tasks:
+        member = random.sample(members, 5)
+        new_assignment:list[Assignment] = [Assignment(t, m) for m in member]
+        assignments.append(min(new_assignment, key=lambda x: x.compatibility))
 
-for m in members:
-    random_skills = random.sample(skills, 3)
-    m.skill_set = set(random_skills)
+    project = Project("low compatibility", assignments)
+    return project
 
-# task in the project
-task_1 = Task("task_1", set(random.sample(skills, 3)))
-task_2 = Task("task_2", set(random.sample(skills, 3)))
-task_3 = Task("task_3", set(random.sample(skills, 3)))
-task_4 = Task("task_4", set(random.sample(skills, 3)))
-task_5 = Task("task_5", set(random.sample(skills, 3)))
-task_6 = Task("task_6", set(random.sample(skills, 3)))
-task_7 = Task("task_7", set(random.sample(skills, 3)))
-task_8 = Task("task_8", set(random.sample(skills, 3)))
-task_9 = Task("task_9", set(random.sample(skills, 3)))
-task_10 = Task("task_10", set(random.sample(skills, 3)))
-task_11 = Task("task_11", set(random.sample(skills, 3)))
+def big_team_size():
+    '''create team formation with big team size'''
+    assignments = []
+    choosen_members = list()
+    for t in tasks:
+        member = random.choice([m for m in members if m not in choosen_members])
+        choosen_members.append(member)
+        new_assignment = Assignment(t, member)
+        assignments.append(new_assignment)
 
-tasks = [
-    task_1,
-    task_2,
-    task_3,
-    task_4,
-    task_5,
-    task_6,
-    task_7,
-    task_8,
-    task_9,
-    task_10,
-    task_11
-]
+    project = Project("big team size", assignments)
+    return project
 
-assignments = [
-    Assignment(task_1, member_1),
-    Assignment(task_2, member_4),
-    Assignment(task_3, member_2),
-    Assignment(task_4, member_4),
-    Assignment(task_5, member_3),
-    Assignment(task_6, member_5),
-    Assignment(task_7, member_1),
-    Assignment(task_8, member_4),
-    Assignment(task_9, member_3),
-    Assignment(task_10, member_5),
-    Assignment(task_11, member_1),
-]
-project = Project("itern dashboard", assignments)
+def high_task_load():
+    '''create team formation with high task load'''
+    available_member = random.sample(members, 3)
+    project = Project("high task load", [Assignment(t, random.choice(available_member)) for t in tasks])
+
+    return project
+
+def low_collab_score():
+    '''create team formation with low collaboration score'''
+    projects:list[Project] = list()
+    for i in range(900):
+        project = Project("low collab score", [Assignment(t, random.choice(members)) for t in tasks])
+        projects.append(project)
+
+    return min(projects, key=lambda x:x.collab_score)
+
+project = low_collab_score()
+assignments = project.assignments
+# project.print_project()
