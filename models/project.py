@@ -20,16 +20,16 @@ class Project:
             print(f"{a.task.name} -> {a.member.name}", [s.name for s in a.task.skills & a.member.skill_set])
         
         print("-----------------------------------")
-        print(f"task compatibility:  {self.task_compatility}")
+        print(f"task compatibility:  {self.task_compatility:.4f}")
         print(f"team size:  {len({a.member for a in self.assignments})}")
         print("communication:  ")
-        print(f"task load:  {self.task_load}")
-        print(f"harmony among team member:  {self.collab_score}")
+        print(f"task load:  {self.task_load:.4f}")
+        print(f"harmony among team member:  {self.collab_score:.4f}")
         print(f"team member motivation:  ")
         print("leader:")
         print("")
-        print(f"total salary:  {self.total_salary}")
-        print(f"estimated total time:  {self.total_estimated_time}")
+        print(f"total salary:  {self.total_salary:.2f}")
+        print(f"estimated total time:  {self.total_estimated_time:.4f}")
     
     def get_member(self, task: Task) -> list:
         return [a.member.name for a in self.assignments if a.task == task]
