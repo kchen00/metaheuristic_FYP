@@ -5,8 +5,6 @@ from models.task import Task
 from models.assignment import Assignment
 import random, json
 
-random.seed(1)
-
 staffs = dict()
 staff_skills = dict()
 
@@ -30,7 +28,7 @@ for s in staff_json:
             new_skill = Skill(s)
             staff_skills[s] = new_skill
             new_member_skill.append(new_skill)
-        
+
     new_member.skill_set = set(new_member_skill)
 
 for s in staffs:
@@ -41,7 +39,7 @@ for s in staffs:
         if scores[i] != 0:
             member.add_score(staffs[m], scores[i])
 
-tasks:list[Task] = list()
+tasks: list[Task] = list()
 task_json = dict()
 with open("data/project task/task.json", "r") as f:
     task_json = json.load(f)
@@ -55,26 +53,28 @@ for t in task_json:
             new_skill = Skill(s)
             staff_skills[s] = new_skill
             new_task.skills.add(new_skill)
-    
+
     tasks.append(new_task)
 
 # extracting the members and skills for easier setup
-skills:list[Skill] = list(staff_skills.values())
-members:list[Member] = list(staffs.values())
+skills: list[Skill] = list(staff_skills.values())
+members: list[Member] = list(staffs.values())
 
-def low_compatibility():
-    '''create team formation with low compatibility'''
+
+def low_compatibility_team():
+    """create team formation with low compatibility"""
     assignments = []
     for t in tasks:
         member = random.sample(members, 5)
-        new_assignment:list[Assignment] = [Assignment(t, m) for m in member]
+        new_assignment: list[Assignment] = [Assignment(t, m) for m in member]
         assignments.append(min(new_assignment, key=lambda x: x.compatibility))
 
-    project = Project("low compatibility", assignments)
+    project = Project("low compatibility team", assignments)
     return project
 
-def big_team_size():
-    '''create team formation with big team size'''
+
+def big_size_team():
+    """create team formation with big team size"""
     assignments = []
     choosen_members = list()
     for t in tasks:
@@ -83,25 +83,36 @@ def big_team_size():
         new_assignment = Assignment(t, member)
         assignments.append(new_assignment)
 
-    project = Project("big team size", assignments)
+    project = Project("big size team", assignments)
     return project
 
-def high_task_load():
-    '''create team formation with high task load'''
+
+def high_task_load_team():
+    """create team formation with high task load"""
     available_member = random.sample(members, 3)
-    project = Project("high task load", [Assignment(t, random.choice(available_member)) for t in tasks])
+    project = Project(
+        "high task load team",
+        [Assignment(t, random.choice(available_member)) for t in tasks],
+    )
 
     return project
 
-def low_collab_score():
-    '''create team formation with low collaboration score'''
-    projects:list[Project] = list()
+
+def low_collab_team():
+    """create team formation with low collaboration score"""
+    projects: list[Project] = list()
     for i in range(900):
-        project = Project("low collab score", [Assignment(t, random.choice(members)) for t in tasks])
+        project = Project(
+            "low collab team", [Assignment(t, random.choice(members)) for t in tasks]
+        )
         projects.append(project)
 
-    return min(projects, key=lambda x:x.collab_score)
+    return min(projects, key=lambda x: x.collab_score)
 
-project = low_collab_score()
-assignments = project.assignments
-# project.print_project()
+
+low_compatibility = low_compatibility_team()
+high_load = high_task_load_team()
+big_team = big_size_team()
+low_collab = low_collab_team()
+
+projects:list[Project] = [low_compatibility, big_team, high_load, low_collab]
