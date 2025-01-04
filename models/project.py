@@ -13,24 +13,22 @@ class Project:
         self.total_estimated_time = self.get_total_estimated_time()
         self.collab_score = self.get_collaboration_score()
         self.team_size = self.get_team_size()
-
-    def print_project(self):
-        print("-----------------------------------")
-        for a in self.assignments:
-            print(f"{a.task.name} -> {a.member.name}", [s.name for s in a.task.skills & a.member.skill_set])
-        
-        print("-----------------------------------")
-        print(f"task compatibility:  {self.task_compatility:.4f}")
-        print(f"team size:  {len({a.member for a in self.assignments})}")
-        print("communication:  ")
-        print(f"task load:  {self.task_load:.4f}")
-        print(f"harmony among team member:  {self.collab_score:.4f}")
-        print(f"team member motivation:  ")
-        print("leader:")
-        print("")
-        print(f"total salary:  {self.total_salary:.2f}")
-        print(f"estimated total time:  {self.total_estimated_time:.4f}")
     
+    def formation_metrics(self) -> dict:
+        return {
+            "task compatibility": self.task_compatility,
+            "team size": self.team_size,
+            "task load": self.task_load,
+            "harmony among team member": self.collab_score,
+            "total salary": self.total_salary,
+            "estimated total time": self.total_estimated_time,
+        }
+
+    def assingment_member(self) -> dict:
+        return {
+            a.task.name: a.member.name for a in self.assignments
+        }
+
     def get_member(self, task: Task) -> list:
         return [a.member.name for a in self.assignments if a.task == task]
     

@@ -4,6 +4,9 @@ from models.project import Project
 from models.task import Task
 from models.assignment import Assignment
 import random, json
+import pandas as pd
+
+random.seed(1)
 
 staffs = dict()
 staff_skills = dict()
@@ -116,3 +119,7 @@ big_team = big_size_team()
 low_collab = low_collab_team()
 
 projects:list[Project] = [low_compatibility, big_team, high_load, low_collab]
+
+data = {p.name: p.formation_metrics() for p in projects}
+df = pd.DataFrame(data)
+print(df)

@@ -122,7 +122,9 @@ def run(initial_formation: Project, max_iteration: int = 800, enable_visuals: bo
         plt.plot(aco.average_fit)
         plt.show()
 
-        new_solution: Project = Project(setup.project.name, aco.best.nodes)
-        difference_checker.print_comparison(setup.project, new_solution)
+        new_solution: Project = Project(initial_formation.name, aco.best.nodes)
+        difference_checker.print_difference(initial_formation, new_solution)
 
     return aco.average_fit, aco.best_fit
+
+# run(setup.projects[0])

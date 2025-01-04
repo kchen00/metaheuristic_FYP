@@ -141,7 +141,9 @@ def run(initial_formation: Project, max_iteration: int = 800, enable_visuals:boo
         plt.plot(ga.average_fit)
         plt.show()
 
-        new_solution: Project = Project(setup.project.name, ga.best.genes)
-        difference_checker.print_comparison(setup.project, new_solution)
+        new_solution: Project = Project(initial_formation.name, ga.best.genes)
+        difference_checker.print_difference(initial_formation, new_solution)
 
     return ga.average_fit, ga.best_fit
+
+# run(setup.projects[0])

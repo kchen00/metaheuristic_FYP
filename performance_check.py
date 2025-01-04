@@ -28,15 +28,10 @@ def monitor_resources(func, *args, **kwargs):
     # Measure final memory usage
     final_memory = process.memory_info().rss
     memory_usage = final_memory - initial_memory
+    memory_usage /= 1024
     
     # Total execution time
     elapsed_time = time.time() - start_time
-
-    print("")
-    # Print results
-    print(f"CPU Time Used: {cpu_time_used:.2f} seconds")
-    print(f"Memory Usage: {memory_usage:.2f} B")
-    print(f"Execution Time: {elapsed_time:.2f} seconds")
     
     return cpu_time_used, memory_usage, elapsed_time, result[0], result[1]
 

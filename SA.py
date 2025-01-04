@@ -116,11 +116,11 @@ class SimulatedAnnealing:
         else:
             self.best_fit.append(best_fitness if best_fitness > self.best_fit[-1] else self.best_fit[-1])
 
-def run(initial_solution: Project, max_iteration: int = 800, enable_visuals: bool = True) -> tuple:
-    sa = SimulatedAnnealing(Solution(initial_solution.assignments), initial_temperature=10000, cd=0.99, total_neighbour=100)
+def run(initial_formation: Project, max_iteration: int = 800, enable_visuals: bool = True) -> tuple:
+    sa = SimulatedAnnealing(Solution(initial_formation.assignments), initial_temperature=10000, cd=0.99, total_neighbour=100)
     while sa.iteration <= max_iteration:
         sa.create_neighbour_solution()
-        average_fitness, best_fitness = sa.evaluate_solution(initial_solution)
+        average_fitness, best_fitness = sa.evaluate_solution(initial_formation)
         sa.decide_solution()
         sa.cooldown()
         sa.record_fitness(average_fitness, best_fitness)
@@ -132,7 +132,9 @@ def run(initial_solution: Project, max_iteration: int = 800, enable_visuals: boo
         plt.plot(sa.average_fit)
         plt.show()
 
-        new_solution: Project = Project(setup.project.name, sa.current_solution.states)
-        difference_checker.print_comparison(setup.project, new_solution)
+        new_solution: Project = Project(initial_formation.name, sa.current_solution.states)
+        difference_checker.print_difference(initial_formation, new_solution)
 
     return sa.average_fit, sa.best_fit
+
+# run(setup.projects[0])
