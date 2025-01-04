@@ -1,5 +1,7 @@
-import psutil, time, csv, random
+import psutil, time, csv, os, random
 import GA, SA, ACO
+import setup
+from models.project import Project
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -39,26 +41,37 @@ def monitor_resources(func, *args, **kwargs):
     return cpu_time_used, memory_usage, elapsed_time, result[0], result[1]
 
 # Function to save results to CSV
-def save_to_csv(filename: str, pc_resources:list, fitness:list):
-    with open(f"data/pc_resources/{filename}.csv", mode="w", newline="") as file:
+def save_to_csv(mh_name: str, test_case: str, pc_resources:list, fitness:list):
+    pc_resources_dir = f"data/pc_resources/{test_case}"
+    fitness_dir = f"data/fitness/{test_case}"
+    # check if dir ecists else create one
+    if not(os.path.exists(pc_resources_dir)):
+        os.makedirs(pc_resources_dir)
+    if not(os.path.exists(fitness_dir)):
+        os.makedirs(fitness_dir)
+    
+    with open(f"{pc_resources_dir}/{mh_name}.csv", mode="w", newline="") as file:
         writer = csv.writer(file)
         writer.writerow(["CPU Time", "Memory Usage", "Elapsed Time"])  # Header
         for row in pc_resources:
             writer.writerow(row)
     
-    with open(f"data/fitness/{filename}.csv", mode="w", newline="") as file:
+    with open(f"{fitness_dir}/{mh_name}.csv", mode="w", newline="") as file:
         writer = csv.writer(file)
         writer.writerow(["Average Best Fitness", "Grand Average Fitness"])
         for row in fitness:
             writer.writerow(row)
 
-def benchmark(mh_func: GA, mh_name: str, iterations: int = 10):
+def benchmark(mh_func: GA, project: Project, mh_name: str, comparison: int, random_seeds: list[int]):
     pc_resources = list()
     best_fitness = list()
     average_fitness = list()
+    print(random_seeds)
+    return
 
-    for i in range(iterations):
-        results = monitor_resources(lambda: mh_func.run(enable_visuals=False))
+    for seed, c in enumerate(comparison):
+        random.seed(random_seeds[seed])
+        results = monitor_resources(lambda: mh_func.run(project, enable_visuals=False))
         pc_resources.append((results[0], results[1], results[2]))
 
         average_fitness.append(results[3])
@@ -73,46 +86,82 @@ def benchmark(mh_func: GA, mh_name: str, iterations: int = 10):
     avg_fitness = [sum(group) / len(group) for group in transposed]
     
     fitness = list(zip(avg_best, avg_fitness))
-    save_to_csv(mh_name, pc_resources, fitness)
+    save_to_csv(mh_name, project.name, pc_resources, fitness)
 
 
-def plot_comparison(folder: str, column: str, marker: str = "o"):
-    # Load the results from CSV files
-    ga_data = pd.read_csv(f"{folder}/GA.csv")
-    sa_data = pd.read_csv(f"{folder}/SA.csv")
-    aco_data = pd.read_csv(f"{folder}/ACO.csv")
 
-    # Plot CPU Time comparison
-    plt.figure(figsize=(10, 6))
+def plot_comparison(
+    folder: str, 
+    test_case: list[str], 
+    column: str, 
+    x_label: str,
+    marker_size: int = 6, 
+):
+    # Read data for each algorithm
+    ga_data = [pd.read_csv(f"{folder}/{test}/GA.csv") for test in test_case]
+    sa_data = [pd.read_csv(f"{folder}/{test}/SA.csv") for test in test_case]
+    aco_data = [pd.read_csv(f"{folder}/{test}/ACO.csv") for test in test_case]
+    x = range(len(ga_data[0][column]))
 
-    plt.plot(range(1, len(ga_data)+1), ga_data[column], label="GA", marker=marker, color="blue")
-    plt.plot(range(1, len(sa_data)+1), sa_data[column], label="SA", marker=marker, color="green")
-    plt.plot(range(1, len(aco_data)+1), aco_data[column], label="ACO", marker=marker, color="red")
-
-    plt.xlabel("Iteration", fontsize=14, fontweight="bold")
-    plt.ylabel(f"{column}", fontsize=14, fontweight="bold")
-    plt.title(f"{column} Comparison: GA vs SA vs ACO", fontsize=16, fontweight="bold")
+    # Create a 2x2 grid of subplots
+    fig, axs = plt.subplots(2, 2, figsize=(14, 12), sharex=True)
     
-    # Add grid with reduced opacity for better visibility
-    plt.grid(True, linestyle='--', alpha=0.6)
+    # Define styles
+    colors = {'GA': 'red', 'SA': 'green', 'ACO': 'blue'}
+    markers = {'GA': 'o', 'SA': 's', 'ACO': 'D'}
+    
+    # Iterate through test cases
+    for i, ax in enumerate(axs.flat):
+        # Plot for each algorithm
+        ax.plot(
+            x, ga_data[i][column], label='GA', color=colors['GA'], 
+             marker=markers['GA'], markersize=marker_size
+        )
+        ax.plot(
+            x, sa_data[i][column], label='SA', color=colors['SA'], 
+            marker=markers['SA'], markersize=marker_size
+        )
+        ax.plot(
+            x, aco_data[i][column], label='ACO', color=colors['ACO'], 
+            marker=markers['ACO'], markersize=marker_size
+        )
+        
+        # Subplot title
+        ax.set_title(f"Comparison: {test_case[i]}", fontsize=12)
+        
+        # Enable grid
+        ax.grid(True, linestyle='--', alpha=0.6)
 
-    # Add legend with better placement
-    plt.legend(loc="upper right", fontsize=12, title="Algorithms", title_fontsize=12)
+        # Set legend
+        ax.legend(fontsize=10, loc='best')
+
+    # Add shared axis labels
+    fig.text(0.5, 0.04, x_label, ha='center', va='center', fontsize=14, fontweight='bold')
+    fig.text(0.04, 0.5, column.capitalize(), ha='center', va='center', fontsize=14, fontweight='bold', rotation='vertical')
+    
+    # Add a shared title
+    fig.suptitle(f'Algorithm Performance Comparison:  {column}', fontsize=16, fontweight='bold')
+
+    # Adjust layout
+    plt.tight_layout(rect=[0.03, 0.03, 1, 0.95])
 
     # Show the plot
-    plt.tight_layout()  # Adjust layout to prevent overlap
     plt.show()
 
-iterations = 6
-benchmark(GA, "GA", iterations=iterations)
-benchmark(SA, "SA", iterations=iterations)
-benchmark(ACO, "ACO", iterations=iterations)
+comparison = 20
+random_seeds = [random.randint(1, 50) for c in range(comparison)]
+for project in setup.projects:
+    benchmark(GA, project, "GA", comparison, random_seeds)
+    benchmark(SA, project, "SA", comparison, random_seeds)
+    benchmark(ACO, project, "ACO", comparison, random_seeds)
 
 pc_resorces = "data/pc_resources"
-plot_comparison(pc_resorces, "CPU Time")
-plot_comparison(pc_resorces, "Memory Usage")
-plot_comparison(pc_resorces, "Elapsed Time")
+test_case = os.listdir(pc_resorces)
+plot_comparison(pc_resorces, test_case, "CPU Time", "Comparison")
+plot_comparison(pc_resorces, test_case, "Memory Usage", "Comparison")
+plot_comparison(pc_resorces, test_case, "Elapsed Time", "Comparison")
 
 fitness = "data/fitness"
-plot_comparison(fitness, "Average Best Fitness", marker=None)
-plot_comparison(fitness, "Grand Average Fitness", marker=None)
+test_case = os.listdir(fitness)
+plot_comparison(fitness, test_case, "Average Best Fitness", "Iteration", marker_size=0)
+plot_comparison(fitness, test_case, "Grand Average Fitness", "Iteration", marker_size=0)
