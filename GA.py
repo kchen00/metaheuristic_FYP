@@ -51,11 +51,11 @@ class GeneticAlgoritm:
 
             self.chromosomes.append(chromosome)
 
-    def evaluate_chromosome(self):
+    def evaluate_chromosome(self, initial_formation: Project):
         '''evaluates the fitness of the chromosomes
         returns average of fitness and the best fitness'''
         for c in self.chromosomes:
-            c.fitness = fitness_checker.check_fitness(c.genes)
+            c.fitness = fitness_checker.check_fitness(c.genes, initial_formation)
 
         fitness = [c.fitness for c in self.chromosomes]
         return np.mean(fitness), max(fitness)
@@ -126,10 +126,10 @@ class GeneticAlgoritm:
         else:
             self.best_fit.append(best_fitness if best_fitness > self.best_fit[-1] else self.best_fit[-1])
 
-def run(max_iteration: int = 800, enable_visuals:bool = True) -> tuple:
+def run(initial_formation: Project, max_iteration: int = 800, enable_visuals:bool = True) -> tuple:
     ga = GeneticAlgoritm(100, 0.1, 0.9)
     while ga.generation <= max_iteration:
-        average_fitness, best_fitness = ga.evaluate_chromosome()
+        average_fitness, best_fitness = ga.evaluate_chromosome(initial_formation)
         ga.tournament_selection(tournament_size=4, parent_num=80)
         ga.produce_bebes()
 
@@ -145,5 +145,3 @@ def run(max_iteration: int = 800, enable_visuals:bool = True) -> tuple:
         difference_checker.print_comparison(setup.project, new_solution)
 
     return ga.average_fit, ga.best_fit
-
-# run()

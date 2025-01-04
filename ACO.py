@@ -67,11 +67,11 @@ class ACO:
         
         return nodes
 
-    def evaluate_fitness(self):
+    def evaluate_fitness(self, initial_formation: Project):
         '''evaluates the fitness of each ant
         returns average fitness and the best fitness'''        
         for a in self.ants:
-            a.fitness = fitness_checker.check_fitness(a.nodes)
+            a.fitness = fitness_checker.check_fitness(a.nodes, initial_formation)
 
         fitness = [a.fitness for a in self.ants]
         return np.mean(fitness), max(fitness)
@@ -106,12 +106,12 @@ class ACO:
             self.best_fit.append(best_fitness if best_fitness > self.best_fit[-1] else self.best_fit[-1])
             
 
-def run(max_iteration: int = 800, enable_visuals: bool = True) -> tuple:
+def run(initial_formation: Project, max_iteration: int = 800, enable_visuals: bool = True) -> tuple:
     aco = ACO(population=100, evaporate=0.01)
     while aco.iteration <= max_iteration:
         for a in aco.ants:
             a.explore(aco.path_nodes)
-        average_fitness, best_fitness = aco.evaluate_fitness()
+        average_fitness, best_fitness = aco.evaluate_fitness(initial_formation)
         aco.update_pheromone(top=0.1)
         aco.record_fitness(average_fitness, best_fitness)
 
@@ -126,5 +126,3 @@ def run(max_iteration: int = 800, enable_visuals: bool = True) -> tuple:
         difference_checker.print_comparison(setup.project, new_solution)
 
     return aco.average_fit, aco.best_fit
-
-# run()
