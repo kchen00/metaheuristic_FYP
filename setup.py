@@ -119,7 +119,3 @@ big_team = big_size_team()
 low_collab = low_collab_team()
 
 projects:list[Project] = [low_compatibility, big_team, high_load, low_collab]
-
-data = {p.name: p.formation_metrics() for p in projects}
-df = pd.DataFrame(data)
-print(df)
