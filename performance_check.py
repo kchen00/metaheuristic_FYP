@@ -66,8 +66,6 @@ def benchmark(mh_func: GA, project: Project, mh_name: str, comparison: int, rand
     pc_resources = list()
     best_fitness = list()
     average_fitness = list()
-    print(random_seeds)
-    return
 
     for seed, c in enumerate(comparison):
         random.seed(random_seeds[seed])
