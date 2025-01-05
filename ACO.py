@@ -2,7 +2,7 @@ from models.assignment import Assignment
 from models.project import Project
 import setup
 import fitness_checker
-import random
+import random, pickle
 import numpy as np
 from matplotlib import pyplot as plt
 import difference_checker
@@ -104,7 +104,16 @@ class ACO:
             self.best_fit.append(best_fitness)
         else:
             self.best_fit.append(best_fitness if best_fitness > self.best_fit[-1] else self.best_fit[-1])
-            
+
+def print_previous_output(before_path: str, after_path: str):
+    '''print the solution difference from previous runs'''
+    before: Project = None
+    after: Project = None
+    with open(f"data/solution/before/{before_path}", "rb") as f:
+        before = pickle.load(f)
+    with open(f"data/solution/after/{after_path}", "rb") as f:
+        after = pickle.load(f)
+    difference_checker.print_difference(before, after)
 
 def run(initial_formation: Project, max_iteration: int = 800, enable_visuals: bool = True) -> tuple:
     aco = ACO(population=100, evaporate=0.01)
@@ -118,13 +127,18 @@ def run(initial_formation: Project, max_iteration: int = 800, enable_visuals: bo
         print(f"ACO | Iteration {aco.iteration} | Average fitness: {average_fitness:.4f} | Best: {aco.best_fit[-1]:.4f}")
         aco.iteration += 1
 
+    # saving the best solution as pickle file
+    new_solution: Project = Project(initial_formation.name, aco.best.nodes)
+    new_solution.save_project(before=False, mh_name="ACO")
     if enable_visuals:   
         plt.plot(aco.average_fit)
         plt.show()
-
-        new_solution: Project = Project(initial_formation.name, aco.best.nodes)
         difference_checker.print_difference(initial_formation, new_solution)
+    
 
     return aco.average_fit, aco.best_fit
 
-# run(setup.projects[0])
+# run(setup.projects[2])
+# before = "big size team/big size team.pickle"
+# after = "big size team/ACO.pickle"
+# print_previous_output(before, after)

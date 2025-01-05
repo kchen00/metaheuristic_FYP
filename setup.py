@@ -3,7 +3,8 @@ from models.skill import Skill
 from models.project import Project
 from models.task import Task
 from models.assignment import Assignment
-import random, json
+import difference_checker
+import random, json, pickle
 import pandas as pd
 
 random.seed(1)
@@ -118,4 +119,12 @@ high_load = high_task_load_team()
 big_team = big_size_team()
 low_collab = low_collab_team()
 
-projects:list[Project] = [low_compatibility, big_team, high_load, low_collab]
+projects:list[Project] = [
+                            low_compatibility, 
+                            big_team, 
+                            high_load, 
+                            low_collab
+                        ]
+
+for p in projects:
+    p.save_project(before=True)

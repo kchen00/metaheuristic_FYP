@@ -2,7 +2,7 @@ from models.assignment import Assignment
 from models.project import Project
 import setup
 import fitness_checker
-import random
+import random, pickle
 import difference_checker
 import numpy as np
 from matplotlib import pyplot as plt
@@ -126,6 +126,17 @@ class GeneticAlgoritm:
         else:
             self.best_fit.append(best_fitness if best_fitness > self.best_fit[-1] else self.best_fit[-1])
 
+def print_previous_output(before_path: str, after_path: str):
+    '''print the solution difference from previous runs'''
+    before: Project = None
+    after: Project = None
+    with open(f"data/solution/before/{before_path}", "rb") as f:
+        before = pickle.load(f)
+    with open(f"data/solution/after/{after_path}", "rb") as f:
+        after = pickle.load(f)
+
+    difference_checker.print_difference(before, after)
+
 def run(initial_formation: Project, max_iteration: int = 800, enable_visuals:bool = True) -> tuple:
     ga = GeneticAlgoritm(100, 0.1, 0.9)
     while ga.generation <= max_iteration:
@@ -137,13 +148,17 @@ def run(initial_formation: Project, max_iteration: int = 800, enable_visuals:boo
         print(f"GA | Generation: {ga.generation} | Population: {len(ga.chromosomes)} | Average fitness: {average_fitness:.4f} | Best fit: {ga.best_fit[-1]:.4f}")
         ga.generation += 1
 
+    new_solution: Project = Project(initial_formation.name, ga.best.genes)
+    new_solution.save_project(before=False, mh_name="GA")
     if enable_visuals:
         plt.plot(ga.average_fit)
         plt.show()
 
-        new_solution: Project = Project(initial_formation.name, ga.best.genes)
         difference_checker.print_difference(initial_formation, new_solution)
 
     return ga.average_fit, ga.best_fit
 
-# run(setup.projects[0])
+# run(setup.projects[1])
+# before = "big size team/big size team.pickle"
+# after = "big size team/GA.pickle"
+# print_previous_output(before, after)

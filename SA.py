@@ -2,7 +2,7 @@ from models.assignment import Assignment
 from models.project import Project
 import setup
 import fitness_checker
-import random
+import random, pickle
 import numpy as np
 from matplotlib import pyplot as plt
 import difference_checker
@@ -115,6 +115,18 @@ class SimulatedAnnealing:
             self.best_fit.append(best_fitness)
         else:
             self.best_fit.append(best_fitness if best_fitness > self.best_fit[-1] else self.best_fit[-1])
+    
+def print_previous_output(before_path: str, after_path: str):
+    '''print the solution difference from previous runs'''
+
+    before: Project = None
+    after: Project = None
+    with open(f"data/solution/before/{before_path}", "rb") as f:
+        before = pickle.load(f)
+    with open(f"data/solution/after/{after_path}", "rb") as f:
+        after = pickle.load(f)
+
+    difference_checker.print_difference(before, after)
 
 def run(initial_formation: Project, max_iteration: int = 800, enable_visuals: bool = True) -> tuple:
     sa = SimulatedAnnealing(Solution(initial_formation.assignments), initial_temperature=10000, cd=0.99, total_neighbour=100)
@@ -128,13 +140,17 @@ def run(initial_formation: Project, max_iteration: int = 800, enable_visuals: bo
         print(f"SA | Iteration {sa.iteration} | temperature={sa.temperature:.8f} | Average fitness:{average_fitness:.4f} | Best fit: {sa.best_fit[-1]:.4f}")
         sa.iteration += 1
 
+    new_solution: Project = Project(initial_formation.name, sa.current_solution.states)
+    new_solution.save_project(before=False, mh_name="SA")
     if enable_visuals: 
         plt.plot(sa.average_fit)
         plt.show()
 
-        new_solution: Project = Project(initial_formation.name, sa.current_solution.states)
         difference_checker.print_difference(initial_formation, new_solution)
 
     return sa.average_fit, sa.best_fit
 
-# run(setup.projects[0])
+# run(setup.projects[2])
+# before = "big size team/big size team.pickle"
+# after = "big size team/SA.pickle"
+# print_previous_output(before, after)

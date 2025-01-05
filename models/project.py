@@ -1,5 +1,6 @@
 from models.assignment import Assignment
 from models.task import Task
+import os, pickle
 
 class Project:
     def __init__(self, name: str, assignments: list[Assignment]):
@@ -84,3 +85,18 @@ class Project:
 
         return team_size
     
+    def save_project(self, before: bool = False, mh_name: str = ""):
+        '''save the project object into a pickle file'''
+        if before:
+            save_path = f"data/solution/before/{self.name}"
+            if not(os.path.exists(save_path)):
+                os.makedirs(save_path)
+            with open(f"{save_path}/{self.name}.pickle", "wb") as f:
+                pickle.dump(self, f)
+
+        else:
+            save_path = f"data/solution/after/{self.name}"
+            if not(os.path.exists(save_path)):
+                os.makedirs(save_path)
+            with open(f"{save_path}/{mh_name}.pickle", "wb") as f:
+                pickle.dump(self, f)
