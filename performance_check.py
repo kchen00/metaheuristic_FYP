@@ -57,14 +57,14 @@ def save_to_csv(mh_name: str, test_case: str, pc_resources:list, fitness:list):
         for row in fitness:
             writer.writerow(row)
 
-def benchmark(mh_func: GA, project: Project, mh_name: str, comparison: int, random_seeds: list[int]):
+def benchmark(mh_func: GA, initial_formation: Project, mh_name: str, random_seeds: list[int]):
     pc_resources = list()
     best_fitness = list()
     average_fitness = list()
 
     for seed, i in enumerate(random_seeds):
         random.seed(random_seeds[seed])
-        results = monitor_resources(lambda: mh_func.run(project, enable_visuals=False))
+        results = monitor_resources(lambda: mh_func.run(initial_formation, max_iteration=50, enable_visuals=False))
         pc_resources.append((results[0], results[1], results[2]))
 
         average_fitness.append(results[3])
@@ -79,9 +79,7 @@ def benchmark(mh_func: GA, project: Project, mh_name: str, comparison: int, rand
     avg_fitness = [sum(group) / len(group) for group in transposed]
     
     fitness = list(zip(avg_best, avg_fitness))
-    save_to_csv(mh_name, project.name, pc_resources, fitness)
-
-
+    save_to_csv(mh_name, initial_formation.name, pc_resources, fitness)
 
 def plot_comparison(
     folder: str, 
@@ -141,12 +139,12 @@ def plot_comparison(
     # Show the plot
     plt.show()
 
-comparison = 20
+comparison = 3
 random_seeds = [random.randint(1, 50) for c in range(comparison)]
 for project in setup.projects:
-    benchmark(GA, project, "GA", comparison, random_seeds)
-    benchmark(SA, project, "SA", comparison, random_seeds)
-    benchmark(ACO, project, "ACO", comparison, random_seeds)
+    benchmark(GA, project, "GA", random_seeds)
+    benchmark(SA, project, "SA", random_seeds)
+    benchmark(ACO, project, "ACO", random_seeds)
 
 pc_resorces = "data/pc_resources"
 test_case = os.listdir(pc_resorces)
