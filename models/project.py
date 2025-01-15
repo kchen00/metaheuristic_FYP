@@ -1,6 +1,7 @@
 from models.assignment import Assignment
 from models.task import Task
 import os, pickle
+from itertools import combinations
 
 class Project:
     def __init__(self, name: str, assignments: list[Assignment]):
@@ -70,12 +71,18 @@ class Project:
     def get_collaboration_score(self) -> float:
         '''get the average collaboration score for this project'''
         collab_score = 0
-        for a in self.assignments:
-            score = sum([a.member.collaboration_scores[s] for s in a.member.collaboration_scores])
-            score /= len(a.member.collaboration_scores) 
-            
-            collab_score += score
+        members = {a.member for a in self.assignments}
+        member_combinations = combinations(members, 2)
+        n = 0
+        for m_comb in member_combinations:
+            score = m_comb[0].collaboration_scores[m_comb[1]] + m_comb[1].collaboration_scores[m_comb[0]]
+            average = score / 2
+            collab_score += average
+            n += 1
         
+        if n > 0:
+            collab_score /= n
+    
         return collab_score
 
     def get_team_size(self) -> int:

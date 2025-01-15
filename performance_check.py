@@ -1,6 +1,6 @@
 import psutil, time, csv, os, random
 import GA, SA, ACO
-import setup
+import setup, proof_setup
 from models.project import Project
 
 import matplotlib.pyplot as plt
@@ -64,7 +64,7 @@ def benchmark(mh_func: GA, initial_formation: Project, mh_name: str, random_seed
 
     for seed, i in enumerate(random_seeds):
         random.seed(random_seeds[seed])
-        results = monitor_resources(lambda: mh_func.run(initial_formation, max_iteration=50, enable_visuals=False))
+        results = monitor_resources(lambda: mh_func.run(setup.members, setup.tasks, initial_formation, max_iteration=800, enable_visuals=False))
         pc_resources.append((results[0], results[1], results[2]))
 
         average_fitness.append(results[3])
@@ -139,12 +139,13 @@ def plot_comparison(
     # Show the plot
     plt.show()
 
-comparison = 3
-random_seeds = [random.randint(1, 50) for c in range(comparison)]
-for project in setup.projects:
-    benchmark(GA, project, "GA", random_seeds)
-    benchmark(SA, project, "SA", random_seeds)
-    benchmark(ACO, project, "ACO", random_seeds)
+# comparison = 20
+# random_seeds = [random.randint(1, 50) for c in range(comparison)]
+# print(random_seeds)
+# for project in setup.projects:
+#     benchmark(GA, project, "GA", random_seeds)
+#     benchmark(SA, project, "SA", random_seeds)
+#     benchmark(ACO, project, "ACO", random_seeds)
 
 pc_resorces = "data/pc_resources"
 test_case = os.listdir(pc_resorces)

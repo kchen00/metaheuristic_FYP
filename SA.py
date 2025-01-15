@@ -1,6 +1,8 @@
 from models.assignment import Assignment
 from models.project import Project
-import setup
+from models.task import Task
+from models.member import Member 
+import setup, proof_setup
 import fitness_checker
 import random, pickle
 import numpy as np
@@ -18,7 +20,10 @@ class Solution:
         self.fitness = 0
 
 class SimulatedAnnealing:
-    def __init__(self, current_solution: Solution, initial_temperature: float = 1000, cd: float = 0.99, total_neighbour: int = 5):
+    def __init__(self, members: list[Member], tasks: list[Task], current_solution: Solution, initial_temperature: float = 1000, cd: float = 0.99, total_neighbour: int = 5):
+        self.members = members
+        self.task = tasks
+        
         self.temperature = initial_temperature
         self.cd = cd
         self.total_neighbours = total_neighbour
@@ -53,7 +58,7 @@ class SimulatedAnnealing:
             for a in self.current_solution.states:
                 state = None
                 if random.random() < change_prob:
-                    state = State(a.task, random.choice(setup.members))
+                    state = State(a.task, random.choice(self.members))
                 else:
                     state = State(a.task, a.member)
                 
@@ -128,8 +133,8 @@ def print_previous_output(before_path: str, after_path: str):
 
     difference_checker.print_difference(before, after)
 
-def run(initial_formation: Project, max_iteration: int = 800, enable_visuals: bool = True) -> tuple:
-    sa = SimulatedAnnealing(Solution(initial_formation.assignments), initial_temperature=20000, cd=0.99, total_neighbour=100)
+def run(members: list[Member], tasks: list[Task], initial_formation: Project, max_iteration: int = 800, enable_visuals: bool = True) -> tuple:
+    sa = SimulatedAnnealing(members, tasks, Solution(initial_formation.assignments), initial_temperature=20000, cd=0.99, total_neighbour=100)
     while sa.iteration <= max_iteration:
         sa.create_neighbour_solution()
         average_fitness, best_fitness = sa.evaluate_solution(initial_formation)
@@ -150,7 +155,12 @@ def run(initial_formation: Project, max_iteration: int = 800, enable_visuals: bo
 
     return sa.average_fit, sa.best_fit
 
-# run(setup.projects[2])
-# before = "big size team/big size team.pickle"
-# after = "big size team/SA.pickle"
-# print_previous_output(before, after)
+# run(proof_setup.members, proof_setup.tasks, proof_setup.project)
+run(setup.members, setup.tasks, setup.projects[3])
+
+# for p in setup.projects:
+#     print(f"////////////////{p.name}////////////////")
+#     before = f"{p.name}/{p.name}.pickle"
+#     after = f"{p.name}/SA.pickle"
+#     print_previous_output(before, after)
+#     print("")

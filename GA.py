@@ -1,6 +1,8 @@
 from models.assignment import Assignment
+from models.task import Task
+from models.member import Member
 from models.project import Project
-import setup
+import setup, proof_setup
 import fitness_checker
 import random, pickle
 import difference_checker
@@ -28,7 +30,10 @@ class Chromosomes:
         return b1, b2
     
 class GeneticAlgoritm:
-    def __init__(self, size: int = 400, mutation: float = 0.5, cross_over: float = 0.5):
+    def __init__(self, members: list[Member], tasks: list[Task], size: int = 400, mutation: float = 0.5, cross_over: float = 0.5):
+        self.members = members
+        self.tasks = tasks
+        
         self.size = size
         self.chromosomes: list[Chromosomes] = list()
         self.generation = 1
@@ -45,7 +50,7 @@ class GeneticAlgoritm:
         for i in range(self.size):
             chromosome = Chromosomes(
                 [
-                    Genes(t, random.choice(setup.members)) for t in setup.tasks
+                    Genes(t, random.choice(self.members)) for t in self.tasks
                 ]
             )
 
@@ -110,7 +115,7 @@ class GeneticAlgoritm:
         for b in bebes:
             for i, g in enumerate(b.genes):
                 if random.random() < self.mutation:
-                    new_member = random.choice([m for m in setup.members if m != g.member])
+                    new_member = random.choice([m for m in self.members if m != g.member])
                     b.genes[i] = Genes(g.task, new_member)
         
         self.chromosomes += bebes
@@ -137,8 +142,8 @@ def print_previous_output(before_path: str, after_path: str):
 
     difference_checker.print_difference(before, after)
 
-def run(initial_formation: Project, max_iteration: int = 800, enable_visuals:bool = True) -> tuple:
-    ga = GeneticAlgoritm(100, 0.1, 0.9)
+def run(members: list[Member], tasks: list[Task], initial_formation: Project, max_iteration: int = 800, enable_visuals:bool = True) -> tuple:
+    ga = GeneticAlgoritm(members, tasks, 100, 0.1, 0.9)
     while ga.generation <= max_iteration:
         average_fitness, best_fitness = ga.evaluate_chromosome(initial_formation)
         ga.tournament_selection(tournament_size=4, parent_num=80)
@@ -158,7 +163,12 @@ def run(initial_formation: Project, max_iteration: int = 800, enable_visuals:boo
 
     return ga.average_fit, ga.best_fit
 
-# run(setup.projects[1])
-# before = "big size team/big size team.pickle"
-# after = "big size team/GA.pickle"
-# print_previous_output(before, after)
+# run(proof_setup.members, proof_setup.tasks, proof_setup.project)
+run(setup.members, setup.tasks, setup.projects[0])
+
+# for p in setup.projects:
+#     print(f"////////////////{p.name}////////////////")
+#     before = f"{p.name}/{p.name}.pickle"
+#     after = f"{p.name}/GA.pickle"
+#     print_previous_output(before, after)
+#     print("")

@@ -113,6 +113,12 @@ def low_collab_team():
 
     return min(projects, key=lambda x: x.collab_score)
 
+def print_project_task():
+    pd.set_option('display.max_colwidth', None)
+    df = pd.DataFrame(task_json)
+    print(df)
+
+# print_project_task()
 
 low_compatibility = low_compatibility_team()
 high_load = high_task_load_team()

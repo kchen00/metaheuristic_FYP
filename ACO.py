@@ -1,6 +1,8 @@
+from models.task import Task
+from models.member import Member
 from models.assignment import Assignment
 from models.project import Project
-import setup
+import setup, proof_setup
 import fitness_checker
 import random, pickle
 import numpy as np
@@ -15,7 +17,8 @@ class Node(Assignment):
 
 class Ant:
     '''represent an ant in the colony'''
-    def __init__(self):
+    def __init__(self, tasks: list[Task]):
+        self.tasks = tasks
         self.nodes: list[Node] = list()
         self.fitness = 0
 
@@ -24,7 +27,7 @@ class Ant:
         
         leaves pheromones on the node'''
         path = list()
-        for t in setup.tasks:
+        for t in self.tasks:
             valid_nodes: list[Node] = [n for n in nodes if n.task == t]
             
             # calculating the probabilitiy of choosing a node to explore 
@@ -46,11 +49,14 @@ class Ant:
 
 
 class ACO:
-    def __init__(self, population: int = 100, evaporate: float = 0.2):
+    def __init__(self, members: list[Member], tasks: list[Task], population: int = 100, evaporate: float = 0.2):
+        self.members = members
+        self.tasks = tasks
+        
         self.population = population
         self.evaporate = 1 - evaporate
         self.iteration = 1
-        self.ants = [Ant() for i in range(self.population)]
+        self.ants = [Ant(tasks) for i in range(self.population)]
         self.path_nodes = self.initilize_path_nodes()
         
         self.best: Ant = None
@@ -60,8 +66,8 @@ class ACO:
     def initilize_path_nodes(self) -> list[Node]:
         '''generates all possible node'''
         nodes = list()
-        for t in setup.tasks:
-            for m in setup.members:
+        for t in self.tasks:
+            for m in self.members:
                 node = Node(t, m)
                 nodes.append(node)
         
@@ -115,8 +121,8 @@ def print_previous_output(before_path: str, after_path: str):
         after = pickle.load(f)
     difference_checker.print_difference(before, after)
 
-def run(initial_formation: Project, max_iteration: int = 800, enable_visuals: bool = True) -> tuple:
-    aco = ACO(population=100, evaporate=0.01)
+def run(members: list[Member], tasks: list[Task], initial_formation: Project, max_iteration: int = 800, enable_visuals: bool = True) -> tuple:
+    aco = ACO(members, tasks, population=100, evaporate=0.01)
     while aco.iteration <= max_iteration:
         for a in aco.ants:
             a.explore(aco.path_nodes)
@@ -138,7 +144,12 @@ def run(initial_formation: Project, max_iteration: int = 800, enable_visuals: bo
 
     return aco.average_fit, aco.best_fit
 
-# run(setup.projects[2])
-# before = "big size team/big size team.pickle"
-# after = "big size team/ACO.pickle"
-# print_previous_output(before, after)
+# run(proof_setup.members, proof_setup.tasks, proof_setup.project)
+run(setup.members, setup.tasks, setup.projects[0])
+
+# for p in setup.projects:
+#     print(f"////////////////{p.name}////////////////")
+#     before = f"{p.name}/{p.name}.pickle"
+#     after = f"{p.name}/ACO.pickle"
+#     print_previous_output(before, after)
+#     print("")

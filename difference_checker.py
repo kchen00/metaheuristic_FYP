@@ -33,6 +33,7 @@ def print_member_changes(before: Project, after: Project):
 
 def print_difference(before: Project, after: Project):
     print("=====================================================================")
+    print(f"Scenario:  {before.name}")
     print_member_changes(before, after)
     print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
     print_improvement(before, after)
